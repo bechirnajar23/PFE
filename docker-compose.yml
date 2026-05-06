@@ -1,25 +1,18 @@
-
----
-
-# 🐳 3. docker-compose.yml
-
-
 services:
-
   timescaledb:
     image: timescale/timescaledb:latest-pg14
     container_name: hgw_timescaledb
     environment:
-      POSTGRES_USER: hgw_user
-      POSTGRES_PASSWORD: hgw_password
-      POSTGRES_DB: hgw_monitoring
+      POSTGRES_USER: "${POSTGRES_USER:-hgw_user}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-hgw_password}"
+      POSTGRES_DB: "${POSTGRES_DB:-hgw_monitoring}"
     ports:
       - "5432:5432"
     volumes:
       - hgw_timescaledb_data:/var/lib/postgresql/data
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hgw_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hgw_user} -d ${POSTGRES_DB:-hgw_monitoring}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -34,38 +27,54 @@ services:
         condition: service_healthy
     command: python data_collection.py
 
+  sms:
+    build: ./predictor
+    container_name: hgw_sms_service
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+    command: python sms_service.py
+
   predictor:
     build: ./predictor
     container_name: hgw_predictor
-    env_file: .env
+    env_file:
+      - .env
     depends_on:
-      - timescaledb
+      timescaledb:
+        condition: service_healthy
+      sms:
+        condition: service_started
     volumes:
       - ./data:/app/data
-      - ./models:/app/predictor/long_horizon_dl
-      - ./models:/app/predictor/multi_horizon
+      - ./logs:/app/logs
+      - ./predictor/multi_horizon:/app/multi_horizon
+      - ./predictor/long_horizon_dl:/app/long_horizon_dl
     command: python predict_service.py
-    environment:
-      - POSTGRES_USER=hgw_user
-      - POSTGRES_PASSWORD=hgw_password
-      - POSTGRES_DB=hgw_monitoring
 
   grafana:
     image: grafana/grafana:latest
     container_name: hgw_grafana
+    env_file:
+      - .env
     ports:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
     depends_on:
-      - timescaledb
+      timescaledb:
+        condition: service_healthy
     environment:
-      - GF_SMTP_ENABLED=true
-      - GF_SMTP_HOST=smtp.gmail.com:587
-      - GF_SMTP_USER=bachir2004najjar@gmail.com
-      - GF_SMTP_PASSWORD=yure zyyp rvyp budy
-      - GF_SMTP_FROM_ADDRESS=bachir2004najjar@gmail.com
-      - GF_SMTP_SKIP_VERIFY=true
+      GF_SMTP_ENABLED: "${GF_SMTP_ENABLED:-false}"
+      GF_SMTP_HOST: "${GF_SMTP_HOST:-}"
+      GF_SMTP_USER: "${GF_SMTP_USER:-}"
+      GF_SMTP_PASSWORD: "${GF_SMTP_PASSWORD:-}"
+      GF_SMTP_FROM_ADDRESS: "${GF_SMTP_FROM_ADDRESS:-}"
+      GF_SMTP_SKIP_VERIFY: "${GF_SMTP_SKIP_VERIFY:-true}"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/hgw_monitoring.json
 
 volumes:
   hgw_timescaledb_data:

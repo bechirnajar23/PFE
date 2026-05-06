@@ -22,7 +22,10 @@ CREATE TABLE IF NOT EXISTS monitor_snapshots (
     DHCP_DATA_STATE TEXT,
     DHCP_V6_STATE TEXT,
     NEMO_PROCESS_STATUS TEXT,
-    SYSTEM_UPTIME_SECONDS INTEGER
+    SYSTEM_UPTIME_SECONDS INTEGER,
+    alert_eligible BOOLEAN DEFAULT FALSE,
+    alert_explanation TEXT,
+    alert_explainer_json JSONB
 );
 
 -- Convertir en hypertable (optimisée pour séries temporelles)
@@ -35,10 +38,19 @@ CREATE INDEX IF NOT EXISTS idx_timestamp_status ON monitor_snapshots (timestamp 
 -- Table des prédictions
 CREATE TABLE IF NOT EXISTS predictions_log (
     timestamp TIMESTAMPTZ NOT NULL,
+    gateway_id TEXT DEFAULT 'HGW_001',
+    horizon TEXT,
     horizon_min INTEGER,
-    probability NUMERIC,
+    probability DOUBLE PRECISION,
+    threshold DOUBLE PRECISION,
     alert BOOLEAN,
-    predictions_json JSONB
+    decision_level TEXT,
+    decision_message TEXT,
+    decision_explanation TEXT,
+    explainer_json JSONB,
+    model_version TEXT,
+    predictions_json JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 SELECT create_hypertable('predictions_log', 'timestamp', if_not_exists => TRUE);
@@ -76,7 +88,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     severity TEXT,
     message TEXT
 );
-CREATE TABLE predictions (
+CREATE TABLE IF NOT EXISTS predictions (
   timestamp TIMESTAMPTZ,
   gateway_id TEXT,
 

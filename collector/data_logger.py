@@ -11,6 +11,19 @@ DB_DSN = os.getenv(
 print("DB_DSN =", DB_DSN)#pour debug
 engine = create_engine(DB_DSN, pool_pre_ping=True)
 
+
+def ensure_schema():
+    if engine is None:
+        return
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE monitor_snapshots ADD COLUMN IF NOT EXISTS alert_eligible BOOLEAN"))
+            conn.execute(text("ALTER TABLE monitor_snapshots ADD COLUMN IF NOT EXISTS alert_explanation TEXT"))
+            conn.execute(text("ALTER TABLE monitor_snapshots ADD COLUMN IF NOT EXISTS alert_explainer_json JSONB"))
+    except Exception as e:
+        print(f"[DB WARN] Schema alert columns not ready: {e}")
+
+
 def init_db():
     """Initialise la connexion à la base de données"""
     global engine
@@ -40,6 +53,7 @@ def save_snapshot(snap):
             return v
 
     try:
+        ensure_schema()
         data = {
             'timestamp': datetime.now(),  # 🔥 FIX IMPORTANT
             'LOCAL_STATUS': snap.get('LOCAL_STATUS'),
@@ -55,6 +69,9 @@ def save_snapshot(snap):
             'NET_LATENCY_AVG_5': clean(snap.get('NET_LATENCY_AVG_5')),
             'DHCP_DATA_STATE': snap.get('DHCP_DATA_STATE'),
             'DHCP_V6_STATE': snap.get('DHCP_V6_STATE'),
+            'ALERT_ELIGIBLE': bool(snap.get('ALERT_ELIGIBLE', False)),
+            'ALERT_EXPLANATION': snap.get('ALERT_EXPLANATION'),
+            'ALERT_EXPLAINER_JSON': snap.get('ALERT_EXPLAINER_JSON'),
         }
 
         query = text("""
@@ -72,7 +89,10 @@ def save_snapshot(snap):
                 wan_tx_rate_kbps,
                 net_latency_avg_5,
                 dhcp_data_state,
-                dhcp_v6_state
+                dhcp_v6_state,
+                alert_eligible,
+                alert_explanation,
+                alert_explainer_json
             )
             VALUES (
                 :timestamp,
@@ -88,7 +108,10 @@ def save_snapshot(snap):
                 :WAN_TX_RATE_KBPS,
                 :NET_LATENCY_AVG_5,
                 :DHCP_DATA_STATE,
-                :DHCP_V6_STATE
+                :DHCP_V6_STATE,
+                :ALERT_ELIGIBLE,
+                :ALERT_EXPLANATION,
+                CAST(:ALERT_EXPLAINER_JSON AS JSONB)
             )
         """)
 

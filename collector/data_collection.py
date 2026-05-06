@@ -1,5 +1,6 @@
 # data_collection.py
 from ast import main
+import json
 import time
 import threading
 from collections import deque
@@ -52,6 +53,9 @@ current_snapshot = {
     "NET_LATENCY_MS": "N/A",
     "NET_LATENCY_AVG_5": "N/A",
     "NET_PING_STATUS": "N/A",
+    "ALERT_ELIGIBLE": False,
+    "ALERT_EXPLANATION": "N/A",
+    "ALERT_EXPLAINER_JSON": "{}",
 }
 
 _lock = threading.Lock()
@@ -385,6 +389,15 @@ def compute_latency_average(current):
     return str(total // count) if count > 0 else "NA"
 
 
+def safe_float(value, default=0.0):
+    try:
+        if value in ("", None, "NA", "N/A"):
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
 def compute_local_status(snap):
     local_status = "NORMAL"
     status_reason = "healthy"
@@ -427,6 +440,66 @@ def compute_local_status(snap):
             pass
 
     return local_status, status_reason
+
+
+def explain_local_status(snap, local_status=None, status_reason=None):
+    """Explain the rule-based HGW state at instant t."""
+    status = local_status or snap.get("LOCAL_STATUS", "NORMAL")
+    reason = status_reason or snap.get("STATUS_REASON", "healthy")
+    cpu = safe_float(snap.get("CPU_USAGE_PERCENT"))
+    mem = safe_float(snap.get("MEM_USAGE_PERCENT"))
+    latency = safe_float(snap.get("NET_LATENCY_AVG_5"))
+    details = []
+
+    def add(feature, value, rule, impact, message):
+        details.append({
+            "feature": feature,
+            "value": value,
+            "rule": rule,
+            "impact": impact,
+            "message": message,
+        })
+
+    if snap.get("DHCP_PROCESS_STATUS") == "STOPPED":
+        add("DHCP_PROCESS_STATUS", "STOPPED", "DHCP_PROCESS_STATUS == STOPPED", "critical", "Service DHCP arrete")
+    if snap.get("WAN_STATE") != "UP":
+        add("WAN_STATE", snap.get("WAN_STATE"), "WAN_STATE != UP", "warning", "Interface WAN non disponible")
+    if snap.get("DHCP_DATA_STATE") != "Bound" and snap.get("WAN_STATE") == "UP":
+        add("DHCP_DATA_STATE", snap.get("DHCP_DATA_STATE"), "DHCP_DATA_STATE != Bound", "warning", "DHCP data non lie")
+    if cpu >= 85:
+        add("CPU_USAGE_PERCENT", cpu, "CPU_USAGE_PERCENT >= 85", "critical", "CPU eleve")
+    elif cpu >= 70:
+        add("CPU_USAGE_PERCENT", cpu, "CPU_USAGE_PERCENT >= 70", "warning", "CPU sous pression")
+    if mem >= 90:
+        add("MEM_USAGE_PERCENT", mem, "MEM_USAGE_PERCENT >= 90", "critical", "Memoire critique / fuite memoire probable")
+    elif mem >= 80:
+        add("MEM_USAGE_PERCENT", mem, "MEM_USAGE_PERCENT >= 80", "warning", "Memoire elevee")
+    if snap.get("NET_PING_STATUS") == "FAIL" and snap.get("WAN_STATE") == "UP":
+        add("NET_PING_STATUS", "FAIL", "NET_PING_STATUS == FAIL", "warning", "Ping reseau en echec")
+    if latency >= 120:
+        add("NET_LATENCY_AVG_5", latency, "NET_LATENCY_AVG_5 >= 120", "warning", "Latence moyenne elevee")
+
+    if not details:
+        details.append({
+            "feature": "system",
+            "value": status,
+            "rule": "no_critical_rule_matched",
+            "impact": "normal",
+            "message": "Aucune regle critique active",
+        })
+
+    top_messages = [item["message"] for item in details if item["impact"] == "critical"]
+    if not top_messages:
+        top_messages = [item["message"] for item in details if item["impact"] == "warning"]
+    explanation = "; ".join(top_messages) if top_messages else "Etat courant normal"
+
+    return {
+        "status": status,
+        "reason": reason,
+        "alert_eligible": status in {"URGENT", "CRITICAL"},
+        "explanation": explanation,
+        "details": details,
+    }
 
 
 def save_internal_state(snap):
@@ -479,6 +552,10 @@ def collect_data():
                 local_status, status_reason = compute_local_status(snap)
                 snap["LOCAL_STATUS"] = local_status
                 snap["STATUS_REASON"] = status_reason
+                explainer = explain_local_status(snap, local_status, status_reason)
+                snap["ALERT_ELIGIBLE"] = explainer["alert_eligible"]
+                snap["ALERT_EXPLANATION"] = explainer["explanation"]
+                snap["ALERT_EXPLAINER_JSON"] = json.dumps(explainer, ensure_ascii=True)
 
                 save_internal_state(snap)
 
@@ -516,6 +593,8 @@ def collect_data():
                     f"[SNAPSHOT] timestamp={snap['timestamp']} "
                     f"LOCAL_STATUS={snap['LOCAL_STATUS']} "
                     f"STATUS_REASON={snap['STATUS_REASON']} "
+                    f"ALERT_ELIGIBLE={snap['ALERT_ELIGIBLE']} "
+                    f"ALERT_EXPLANATION={snap['ALERT_EXPLANATION']} "
                     f"CPU_USAGE_PERCENT={snap['CPU_USAGE_PERCENT']} "
                     f"MEM_USAGE_PERCENT={snap['MEM_USAGE_PERCENT']} "
                     f"DHCP_PROCESS_STATUS={snap['DHCP_PROCESS_STATUS']} "

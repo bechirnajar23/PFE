@@ -1,0 +1,125 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+skinparam Participant {
+    BackgroundColor #89CFF0
+    BorderColor #2E75B6
+    BorderThickness 1.5
+    FontColor #000000
+    FontSize 10
+}
+skinparam Actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 10
+}
+skinparam Sequence {
+    ArrowColor #000000
+    ArrowFontColor #000000
+    ArrowFontSize 9
+    ArrowThickness 1
+    LifeLineBorderColor #5B9BD5
+    LifeLineBorderThickness 1.5
+    LifeLineBackgroundColor #89CFF0
+    GroupBackgroundColor #FFFFFF
+    GroupBorderColor #000000
+    GroupFontColor #000000
+    GroupHeaderFontStyle bold
+}
+
+actor "Operateur" as ACT
+boundary "Interface Grafana / API" as UI
+control "Predict Service" as PRED
+control "Feature Engineering" as FE
+control "Modeles CatBoost" as CB
+control "Modele LSTM 3 jours" as LSTM
+control "Explainer AI\nSHAP / Regles metier" as EXP
+entity "TimescaleDB" as DB
+boundary "Service notification\nEmail/SMS" as NOTIF
+
+ACT -> PRED : 1. Demarrer service prediction
+activate ACT
+activate PRED
+
+loop 24h/24 - Toutes les 5 minutes
+    PRED -> DB : 2. SELECT derniers snapshots
+    activate DB
+    DB --> PRED : 3. Fenetre temporelle recente
+    deactivate DB
+
+    alt Historique suffisant
+        PRED -> FE : 4. Construire features ML/DL
+        activate FE
+        FE -> FE : 5. Calculer moyennes, pentes, lags, health_score
+        FE --> PRED : 6. Features pretes
+        deactivate FE
+
+        PRED -> CB : 7. Predire 15/30/60/360 min
+        activate CB
+        CB --> PRED : 8. Probabilites court terme
+        deactivate CB
+
+        PRED -> LSTM : 9. Predire horizon 3 jours
+        activate LSTM
+        LSTM --> PRED : 10. Probabilite long terme
+        deactivate LSTM
+
+        PRED -> PRED : 11. Comparer probabilites aux seuils
+
+        PRED -> EXP : 12. Expliquer la decision
+        activate EXP
+        EXP --> PRED : 13. Causes: memoire, CPU, service down, WAN...
+        deactivate EXP
+
+        PRED -> DB : 14. INSERT predictions_log + explication
+        activate DB
+        DB --> PRED : 15. Predictions stockees
+        deactivate DB
+
+        alt Etat courant URGENT ou CRITICAL
+            PRED -> NOTIF : 16. Envoyer alerte Email/SMS avec explication
+            activate NOTIF
+            NOTIF --> PRED : 17. Statut notification
+            deactivate NOTIF
+            UI -> DB : 18. Lire predictions et alertes
+            activate UI
+            activate DB
+            DB --> UI : 19. Resultats dashboard
+            deactivate DB
+            deactivate UI
+        else Etat NORMAL ou WARNING
+            PRED -> PRED : 16. Ne pas notifier l'utilisateur
+            UI -> DB : 17. Lire predictions recentes
+            activate UI
+            activate DB
+            DB --> UI : 18. Etat stable / surveillance
+            deactivate DB
+            deactivate UI
+        end
+    else Historique insuffisant
+        PRED -> PRED : 4. Attendre plus de donnees
+        PRED --> ACT : 5. Log "waiting data"
+    end
+
+    alt 7 jours ecoules depuis le dernier entrainement
+        PRED -> PRED : 20. Declencher reentrainement hebdomadaire
+        PRED -> DB : 21. Charger donnees historiques
+        activate DB
+        DB --> PRED : 22. Dataset entrainement
+        deactivate DB
+        PRED -> CB : 23. Reentrainer modeles CatBoost
+        activate CB
+        CB --> PRED : 24. Nouveaux artefacts et seuils
+        deactivate CB
+        PRED -> PRED : 25. Recharger les modeles en memoire
+    else Moins de 7 jours
+        PRED -> PRED : 20. Continuer avec les modeles actifs
+    end
+end
+
+deactivate PRED
+deactivate ACT
+
+@enduml

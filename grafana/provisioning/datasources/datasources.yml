@@ -10,11 +10,13 @@ datasources:
     type: postgres
     access: proxy
     url: timescaledb:5432
-    database: hgw_monitoring
-    user: hgw_user
+    database: $POSTGRES_DB
+    user: $POSTGRES_USER
+    version: 2
     secureJsonData:
-      password: hgw_password
+      password: $POSTGRES_PASSWORD
     jsonData:
+      database: $POSTGRES_DB
       sslmode: disable
       postgresVersion: 1400
       timescaledb: true

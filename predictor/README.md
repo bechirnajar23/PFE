@@ -43,7 +43,7 @@ Grafana / Notebooks / Alertes
 | Stockage | Persister telemetrie, predictions et logs pipeline | `sql/init.sql`, `sql/schema.sql`, `sql/10_pipeline_tables.sql` |
 | Prediction | Charger les modeles et calculer le risque | `predictor/test_models.py`, `predictor/predict_multi_horizon.py`, `predictor/predict_service.py` |
 | Modeles | Artefacts ML/DL entraines | `predictor/multi_horizon/`, `predictor/long_horizon_dl/` |
-| Visualisation | Dashboard temps reel et analyse | `grafana/dashboards/hgw_dashboard.json`, `notebooks/Viz.ipynb` |
+| Visualisation | Dashboards temps reel et analyse | `grafana/dashboards/hgw_monitoring.json`, `grafana/dashboards/hgw_predictions.json`, `notebooks/Viz.ipynb` |
 | Orchestration | Jobs periodiques | `airflow/dags/` |
 
 ## Modeles disponibles
@@ -245,13 +245,14 @@ Password: hgw_password
 TLS/SSL: disable
 ```
 
-Dashboard:
+Dashboards provisionnes automatiquement:
 
 ```text
-grafana/dashboards/hgw_dashboard.json
+grafana/dashboards/hgw_monitoring.json
+grafana/dashboards/hgw_predictions.json
 ```
 
-Si le provisioning automatique n'est pas active dans Docker, importer le JSON manuellement depuis Grafana: Dashboards > New > Import.
+Avec Docker Compose, Grafana charge automatiquement la datasource TimescaleDB et ces deux dashboards au demarrage.
 
 ## Airflow optionnel
 

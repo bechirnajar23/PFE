@@ -9,5 +9,6 @@ sqlalchemy
 matplotlib
 joblib
 flask
+twilio
 python-dotenv
 dotenv

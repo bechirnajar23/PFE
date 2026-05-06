@@ -44,10 +44,13 @@ def _format_message(payload: dict) -> str:
     horizon = payload.get("horizon")
     probability = payload.get("probability")
     message = payload.get("message") or "Incident detecte ou predit"
+    explanation = payload.get("explanation")
     timestamp = payload.get("timestamp")
 
     parts = [f"[HGW] {level}", f"Gateway: {gateway_id}", f"Message: {message}"]
 
+    if explanation:
+        parts.append(f"Pourquoi: {explanation}")
     if horizon:
         parts.append(f"Horizon: {horizon}")
     if probability is not None:

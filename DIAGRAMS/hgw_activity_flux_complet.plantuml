@@ -1,0 +1,107 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+skinparam Activity {
+    BackgroundColor #BDD7EE
+    BorderColor #000000
+    BorderThickness 1
+    FontColor #000000
+    FontSize 10
+}
+skinparam Diamond {
+    BackgroundColor #BDD7EE
+    BorderColor #000000
+    FontColor #000000
+}
+skinparam Arrow {
+    Color #000000
+    FontColor #000000
+    FontSize 9
+    Thickness 1
+}
+skinparam Swimlane {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    BorderThickness 1
+    TitleBackgroundColor #FFFFFF
+    TitleFontStyle plain
+}
+
+|Humain|
+start
+:Demarrer la stack Docker;
+:Consulter le dashboard;
+
+|Systemes/Interfaces|
+:Service de collecte actif;
+:Ouvrir port d'ecoute metriques;
+
+while (Journee de monitoring active ?) is (oui)
+    |Systemes/Interfaces|
+    :Recevoir metriques HGW sur port dedie;
+    :Normalisation du snapshot;
+    :Calcul du statut local par regles metier;
+    :Generer explication metier;
+
+    if (Snapshot valide ?) then (oui)
+        |Stockage|
+        :Inserer dans monitor_snapshots;
+    else (non)
+        |Systemes/Interfaces|
+        :Completer avec fallback / valeurs connues;
+        |Stockage|
+        :Inserer snapshot partiel;
+    endif
+
+    |Systemes/Interfaces|
+    :Attendre prochain cycle de prediction 5 min;
+    :Service de prediction lit les mesures recentes;
+
+    if (Historique suffisant ?) then (oui)
+        :Construire features ML/DL;
+        :Executer modeles CatBoost;
+        :Executer modele LSTM;
+        :Comparer probabilites aux seuils;
+        :Expliquer prediction par SHAP / regles metier;
+
+        |Stockage|
+        :Inserer predictions et explications;
+
+        |Systemes/Interfaces|
+        if (Etat URGENT ou CRITICAL ?) then (oui)
+            :Envoyer notification Email/SMS avec cause;
+            |Humain|
+            :Recevoir alerte Email ou SMS;
+        else (non)
+            |Humain|
+            :Consulter dashboard sans notification utilisateur;
+        endif
+    else (non)
+        |Systemes/Interfaces|
+        :Attendre plus de donnees;
+    endif
+
+    |Systemes/Interfaces|
+    if (7 jours ecoules ?) then (oui)
+        :Declencher reentrainement;
+        |Stockage|
+        :Fournir donnees historiques;
+        |Systemes/Interfaces|
+        :Reentrainer les modeles;
+        :Recharger les artefacts ML;
+    else (non)
+        :Conserver les modeles actifs;
+    endif
+
+    |Stockage|
+    :Exposer donnees a Grafana;
+
+    |Humain|
+    :Analyser mesures, predictions et alertes;
+endwhile (non)
+
+|Humain|
+:Arreter le monitoring;
+stop
+@enduml

@@ -1,0 +1,61 @@
+@startuml
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+skinparam actorStyle awesome
+skinparam Usecase {
+    BackgroundColor #BDD7EE
+    BorderColor #000000
+    FontColor #000000
+    FontSize 10
+}
+skinparam Actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 10
+}
+
+actor "Utilisateur final" as USER
+actor "Operateur / ISP / Admin" as OPS
+
+rectangle "Systeme HGW Predictive Maintenance" {
+    usecase "Lancer le systeme" as UC_START
+    usecase "Consulter dashboard\nGrafana" as UC_DASH
+    usecase "Configurer seuils\net modeles" as UC_CONFIG
+    usecase "Recevoir metriques HGW" as UC_COLLECT
+    usecase "Evaluer etat HGW\npar regles metier" as UC_RULES
+    usecase "Predire anomalies\nchaque 5 min" as UC_PREDICT
+    usecase "Expliquer cause alerte\nSHAP / regles metier" as UC_EXPLAIN
+    usecase "Envoyer alerte\nEmail ou SMS" as UC_ALERT
+    usecase "Reentrainer modeles\ntous les 7 jours" as UC_RETRAIN
+}
+
+OPS --> UC_START
+OPS --> UC_DASH
+OPS --> UC_CONFIG
+OPS --> UC_RETRAIN
+USER --> UC_ALERT
+
+UC_START --> UC_COLLECT
+UC_COLLECT --> UC_RULES
+UC_RULES --> UC_PREDICT
+UC_PREDICT --> UC_EXPLAIN
+UC_RULES --> UC_EXPLAIN
+UC_EXPLAIN --> UC_ALERT
+
+note right of UC_ALERT
+L'alerte utilisateur est envoyee
+uniquement si l'etat courant est
+URGENT ou CRITICAL.
+end note
+
+note right of UC_CONFIG
+Cas optionnel:
+si aucun changement de configuration
+n'est necessaire, l'operateur ne fait rien.
+end note
+
+@enduml

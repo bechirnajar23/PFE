@@ -1,0 +1,93 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+skinparam Participant {
+    BackgroundColor #89CFF0
+    BorderColor #2E75B6
+    BorderThickness 1.5
+    FontColor #000000
+    FontSize 10
+}
+skinparam Actor {
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    FontColor #000000
+    FontSize 10
+}
+skinparam Sequence {
+    ArrowColor #000000
+    ArrowFontColor #000000
+    ArrowFontSize 9
+    ArrowThickness 1
+    LifeLineBorderColor #5B9BD5
+    LifeLineBorderThickness 1.5
+    LifeLineBackgroundColor #89CFF0
+    GroupBackgroundColor #FFFFFF
+    GroupBorderColor #000000
+    GroupFontColor #000000
+    GroupHeaderFontStyle bold
+}
+
+actor "Operateur" as ACT
+boundary "HGW" as HGW
+boundary "Port d'ecoute metriques" as PORT
+control "Collecteur PC/Serveur" as COL
+control "Parser & Regles locales" as PARSER
+control "Data Logger" as LOGGER
+entity "TimescaleDB" as DB
+boundary "Grafana" as GRAFANA
+
+ACT -> COL : 1. Demarrer le service de collecte
+activate ACT
+activate COL
+COL -> PORT : 2. Ouvrir le port d'ecoute metriques
+activate PORT
+PORT --> COL : 3. Port pret a recevoir les donnees
+
+loop Collecte temps reel pendant toute la journee
+    HGW -> PORT : 4. Envoyer metriques CPU, RAM, DHCP, WAN, ping
+    activate HGW
+    PORT --> COL : 5. Transmettre le paquet recu
+    deactivate HGW
+
+    COL -> PARSER : 6. Normaliser les metriques
+    activate PARSER
+    PARSER -> PARSER : 7. Calculer statut local
+    PARSER --> COL : 8. Snapshot normalise
+    deactivate PARSER
+
+    alt Snapshot valide
+        COL -> LOGGER : 9. Envoyer snapshot
+        activate LOGGER
+        LOGGER -> DB : 10. INSERT monitor_snapshots
+        activate DB
+        DB --> LOGGER : 11. Insertion confirmee
+        deactivate DB
+        LOGGER --> COL : 12. Snapshot stocke
+        deactivate LOGGER
+        GRAFANA -> DB : 13. Requete dashboard
+        activate GRAFANA
+        activate DB
+        DB --> GRAFANA : 14. Mesures recentes
+        deactivate DB
+        deactivate GRAFANA
+    else Donnees incompletes
+        COL -> COL : 9. Appliquer fallback / dernieres valeurs connues
+        COL -> LOGGER : 10. Envoyer snapshot partiel
+        activate LOGGER
+        LOGGER -> DB : 11. INSERT monitor_snapshots
+        activate DB
+        DB --> LOGGER : 12. Insertion confirmee
+        deactivate DB
+        deactivate LOGGER
+    end
+end
+
+ACT -> COL : 15. Arreter la collecte
+COL -> PORT : 16. Fermer le port d'ecoute
+PORT --> COL : 17. Service arrete
+deactivate PORT
+deactivate COL
+deactivate ACT
+@enduml
