@@ -1,0 +1,426 @@
+[
+  {
+    "drift_start": 469,
+    "crash_start": 733,
+    "crash_end": 757,
+    "drift_days": 11,
+    "dur_hours": 24,
+    "severity": 0.8508111819599659
+  },
+  {
+    "drift_start": 978,
+    "crash_start": 1242,
+    "crash_end": 1266,
+    "drift_days": 11,
+    "dur_hours": 24,
+    "severity": 0.8790595317164676
+  },
+  {
+    "drift_start": 1380,
+    "crash_start": 1668,
+    "crash_end": 1702,
+    "drift_days": 12,
+    "dur_hours": 34,
+    "severity": 0.9566005898561907
+  },
+  {
+    "drift_start": 1757,
+    "crash_start": 2069,
+    "crash_end": 2117,
+    "drift_days": 13,
+    "dur_hours": 48,
+    "severity": 0.8683974934787416
+  },
+  {
+    "drift_start": 2255,
+    "crash_start": 2615,
+    "crash_end": 2653,
+    "drift_days": 15,
+    "dur_hours": 38,
+    "severity": 0.8839393478901597
+  },
+  {
+    "drift_start": 2504,
+    "crash_start": 2888,
+    "crash_end": 2907,
+    "drift_days": 16,
+    "dur_hours": 19,
+    "severity": 0.8564343864296614
+  },
+  {
+    "drift_start": 2918,
+    "crash_start": 3278,
+    "crash_end": 3307,
+    "drift_days": 15,
+    "dur_hours": 29,
+    "severity": 0.9281494188978725
+  },
+  {
+    "drift_start": 3261,
+    "crash_start": 3549,
+    "crash_end": 3589,
+    "drift_days": 12,
+    "dur_hours": 40,
+    "severity": 0.959482999678412
+  },
+  {
+    "drift_start": 3616,
+    "crash_start": 3904,
+    "crash_end": 3940,
+    "drift_days": 12,
+    "dur_hours": 36,
+    "severity": 0.9762640612319937
+  },
+  {
+    "drift_start": 3829,
+    "crash_start": 4189,
+    "crash_end": 4210,
+    "drift_days": 15,
+    "dur_hours": 21,
+    "severity": 0.9248558955392295
+  },
+  {
+    "drift_start": 4332,
+    "crash_start": 4668,
+    "crash_end": 4691,
+    "drift_days": 14,
+    "dur_hours": 23,
+    "severity": 0.9287272531815689
+  },
+  {
+    "drift_start": 9570,
+    "crash_start": 9930,
+    "crash_end": 9956,
+    "drift_days": 15,
+    "dur_hours": 26,
+    "severity": 0.8989167269263931
+  },
+  {
+    "drift_start": 9965,
+    "crash_start": 10229,
+    "crash_end": 10276,
+    "drift_days": 11,
+    "dur_hours": 47,
+    "severity": 0.998331867888252
+  },
+  {
+    "drift_start": 10219,
+    "crash_start": 10531,
+    "crash_end": 10566,
+    "drift_days": 13,
+    "dur_hours": 35,
+    "severity": 0.9453850629123578
+  },
+  {
+    "drift_start": 10505,
+    "crash_start": 10793,
+    "crash_end": 10826,
+    "drift_days": 12,
+    "dur_hours": 33,
+    "severity": 0.9479869323033889
+  },
+  {
+    "drift_start": 10681,
+    "crash_start": 11065,
+    "crash_end": 11086,
+    "drift_days": 16,
+    "dur_hours": 21,
+    "severity": 0.9677905098865112
+  },
+  {
+    "drift_start": 11144,
+    "crash_start": 11384,
+    "crash_end": 11425,
+    "drift_days": 10,
+    "dur_hours": 41,
+    "severity": 0.984272560013542
+  },
+  {
+    "drift_start": 11441,
+    "crash_start": 11753,
+    "crash_end": 11797,
+    "drift_days": 13,
+    "dur_hours": 44,
+    "severity": 0.9518211015457578
+  },
+  {
+    "drift_start": 12137,
+    "crash_start": 12401,
+    "crash_end": 12420,
+    "drift_days": 11,
+    "dur_hours": 19,
+    "severity": 0.8670214603014605
+  },
+  {
+    "drift_start": 12387,
+    "crash_start": 12723,
+    "crash_end": 12759,
+    "drift_days": 14,
+    "dur_hours": 36,
+    "severity": 0.916926937724574
+  },
+  {
+    "drift_start": 12843,
+    "crash_start": 13107,
+    "crash_end": 13132,
+    "drift_days": 11,
+    "dur_hours": 25,
+    "severity": 0.87083716348653
+  },
+  {
+    "drift_start": 17753,
+    "crash_start": 18041,
+    "crash_end": 18075,
+    "drift_days": 12,
+    "dur_hours": 34,
+    "severity": 0.9835725936023296
+  },
+  {
+    "drift_start": 17942,
+    "crash_start": 18326,
+    "crash_end": 18350,
+    "drift_days": 16,
+    "dur_hours": 24,
+    "severity": 0.852998163335651
+  },
+  {
+    "drift_start": 18782,
+    "crash_start": 19070,
+    "crash_end": 19116,
+    "drift_days": 12,
+    "dur_hours": 46,
+    "severity": 0.9238288574520637
+  },
+  {
+    "drift_start": 19072,
+    "crash_start": 19360,
+    "crash_end": 19385,
+    "drift_days": 12,
+    "dur_hours": 25,
+    "severity": 0.9431371276483932
+  },
+  {
+    "drift_start": 19374,
+    "crash_start": 19710,
+    "crash_end": 19751,
+    "drift_days": 14,
+    "dur_hours": 41,
+    "severity": 0.935370756055966
+  },
+  {
+    "drift_start": 20376,
+    "crash_start": 20712,
+    "crash_end": 20755,
+    "drift_days": 14,
+    "dur_hours": 43,
+    "severity": 0.8945430352154609
+  },
+  {
+    "drift_start": 20758,
+    "crash_start": 21118,
+    "crash_end": 21161,
+    "drift_days": 15,
+    "dur_hours": 43,
+    "severity": 0.9066147724326952
+  },
+  {
+    "drift_start": 21498,
+    "crash_start": 21738,
+    "crash_end": 21757,
+    "drift_days": 10,
+    "dur_hours": 19,
+    "severity": 0.8715737767678772
+  },
+  {
+    "drift_start": 21835,
+    "crash_start": 22099,
+    "crash_end": 22128,
+    "drift_days": 11,
+    "dur_hours": 29,
+    "severity": 0.9347485447123197
+  },
+  {
+    "drift_start": 22064,
+    "crash_start": 22448,
+    "crash_end": 22475,
+    "drift_days": 16,
+    "dur_hours": 27,
+    "severity": 0.8902410349523056
+  },
+  {
+    "drift_start": 26519,
+    "crash_start": 26903,
+    "crash_end": 26938,
+    "drift_days": 16,
+    "dur_hours": 35,
+    "severity": 0.9523115227076714
+  },
+  {
+    "drift_start": 26894,
+    "crash_start": 27158,
+    "crash_end": 27185,
+    "drift_days": 11,
+    "dur_hours": 27,
+    "severity": 0.9139237487717915
+  },
+  {
+    "drift_start": 27253,
+    "crash_start": 27517,
+    "crash_end": 27558,
+    "drift_days": 11,
+    "dur_hours": 41,
+    "severity": 0.957050828051423
+  },
+  {
+    "drift_start": 27526,
+    "crash_start": 27790,
+    "crash_end": 27812,
+    "drift_days": 11,
+    "dur_hours": 22,
+    "severity": 0.9399367990037572
+  },
+  {
+    "drift_start": 27693,
+    "crash_start": 28053,
+    "crash_end": 28086,
+    "drift_days": 15,
+    "dur_hours": 33,
+    "severity": 0.8509885244244569
+  },
+  {
+    "drift_start": 28184,
+    "crash_start": 28520,
+    "crash_end": 28548,
+    "drift_days": 14,
+    "dur_hours": 28,
+    "severity": 0.9042174259311943
+  },
+  {
+    "drift_start": 28788,
+    "crash_start": 29076,
+    "crash_end": 29096,
+    "drift_days": 12,
+    "dur_hours": 20,
+    "severity": 0.959489990780602
+  },
+  {
+    "drift_start": 29352,
+    "crash_start": 29688,
+    "crash_end": 29725,
+    "drift_days": 14,
+    "dur_hours": 37,
+    "severity": 0.8618179313805212
+  },
+  {
+    "drift_start": 30024,
+    "crash_start": 30264,
+    "crash_end": 30286,
+    "drift_days": 10,
+    "dur_hours": 22,
+    "severity": 0.9843583440583153
+  },
+  {
+    "drift_start": 30311,
+    "crash_start": 30623,
+    "crash_end": 30657,
+    "drift_days": 13,
+    "dur_hours": 34,
+    "severity": 0.9369079376417634
+  },
+  {
+    "drift_start": 30669,
+    "crash_start": 30981,
+    "crash_end": 31028,
+    "drift_days": 13,
+    "dur_hours": 47,
+    "severity": 0.8982960399800995
+  },
+  {
+    "drift_start": 35322,
+    "crash_start": 35610,
+    "crash_end": 35647,
+    "drift_days": 12,
+    "dur_hours": 37,
+    "severity": 0.9419001110991441
+  },
+  {
+    "drift_start": 35586,
+    "crash_start": 35946,
+    "crash_end": 35979,
+    "drift_days": 15,
+    "dur_hours": 33,
+    "severity": 0.9480452539610252
+  },
+  {
+    "drift_start": 36061,
+    "crash_start": 36325,
+    "crash_end": 36354,
+    "drift_days": 11,
+    "dur_hours": 29,
+    "severity": 0.865882232557167
+  },
+  {
+    "drift_start": 36980,
+    "crash_start": 37220,
+    "crash_end": 37263,
+    "drift_days": 10,
+    "dur_hours": 43,
+    "severity": 0.9993078253279357
+  },
+  {
+    "drift_start": 37573,
+    "crash_start": 37837,
+    "crash_end": 37862,
+    "drift_days": 11,
+    "dur_hours": 25,
+    "severity": 0.8884595725271545
+  },
+  {
+    "drift_start": 37815,
+    "crash_start": 38151,
+    "crash_end": 38173,
+    "drift_days": 14,
+    "dur_hours": 22,
+    "severity": 0.8820554190687555
+  },
+  {
+    "drift_start": 38522,
+    "crash_start": 38858,
+    "crash_end": 38884,
+    "drift_days": 14,
+    "dur_hours": 26,
+    "severity": 0.8672887467538059
+  },
+  {
+    "drift_start": 39467,
+    "crash_start": 39755,
+    "crash_end": 39791,
+    "drift_days": 12,
+    "dur_hours": 36,
+    "severity": 0.9639272505034204
+  },
+  {
+    "drift_start": 40004,
+    "crash_start": 40388,
+    "crash_end": 40420,
+    "drift_days": 16,
+    "dur_hours": 32,
+    "severity": 0.9601459209532016
+  },
+  {
+    "drift_start": 40386,
+    "crash_start": 40698,
+    "crash_end": 40739,
+    "drift_days": 13,
+    "dur_hours": 41,
+    "severity": 0.9281384886851087
+  },
+  {
+    "drift_start": 40717,
+    "crash_start": 40957,
+    "crash_end": 40988,
+    "drift_days": 10,
+    "dur_hours": 31,
+    "severity": 0.9054325127632528
+  }
+]

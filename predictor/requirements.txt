@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+catboost
+tensorflow
+joblib
+psycopg2-binary
+sqlalchemy
+flask
+twilio

@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Data (garder seulement les exemples)
+data/*.csv
+!data/example_*.csv
+*.pkl
+!transfer_scaler.pkl
+
+# Models (sauf metadata)
+predictor/multi_horizon/*.cbm
+predictor/long_horizon_dl/*.h5
+predictor/long_horizon_dl/*.keras
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.env
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+/tmp/
+
+# Build
+dist/
+build/
+*.egg-info/

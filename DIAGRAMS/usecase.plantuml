@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+
+actor "Administrateur ISP" as Admin
+actor "Client" as Client
+
+rectangle "Système Prédictif HGW" {
+
+  (Consulter dashboard) as UC1
+  (Configurer alertes) as UC2
+  (Superviser HGW) as UC3
+  (Consulter prédictions) as UC4
+  (Recevoir alertes) as UC5
+
+  Admin --> UC1
+  Admin --> UC2
+  Admin --> UC3
+  Admin --> UC4
+
+  Client --> UC5
+
+}
+
+@enduml

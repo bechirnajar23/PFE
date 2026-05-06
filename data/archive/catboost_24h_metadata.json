@@ -1,0 +1,69 @@
+{
+  "horizon": "24h",
+  "label_column": "incident_in_24h",
+  "model_type": "CatBoostClassifier",
+  "best_params": {
+    "iterations": 800,
+    "depth": 8,
+    "learning_rate": 0.08743276859321572,
+    "l2_leaf_reg": 1.8490361000299513,
+    "border_count": 200,
+    "bagging_temperature": 0.9916589095740987,
+    "random_strength": 1.8902541402167152
+  },
+  "metrics": {
+    "roc_auc": 0.986,
+    "pr_auc": 0.9426,
+    "f1": 0.8792,
+    "threshold": 0.8008,
+    "tp": 3640,
+    "fp": 792,
+    "fn": 208,
+    "tn": 50110,
+    "train_time_s": 17.6
+  },
+  "top15_features_gain": {
+    "mem_std72h": 7.5464,
+    "cwmp_ma72h": 6.3868,
+    "cwmp_std6h": 5.9604,
+    "cwmp_slope6h": 5.5481,
+    "mem_max24h": 4.8717,
+    "cwmp_lag3h": 4.1526,
+    "cwmp_ma24h": 4.004,
+    "loss_max72h": 3.8383,
+    "cwmp_lag6h": 3.5793,
+    "ping_ma24h": 3.559,
+    "cwmp_lag72h": 3.0774,
+    "mem_ma24h": 2.2804,
+    "saturation_idx": 2.1763,
+    "cwmp_max72h": 2.0761,
+    "cos_month": 2.0081
+  },
+  "top15_shap": {
+    "mem_ewm12": 0.1104,
+    "cwmp_slope6h": 0.0996,
+    "mem_std72h": 0.0984,
+    "cwmp_lag3h": 0.0932,
+    "loss_ma24h": 0.0867,
+    "cpu_ewm12": 0.0863,
+    "mem_max24h": 0.0852,
+    "cwmp_ma72h": 0.0851,
+    "cwmp_rss_mb": 0.0803,
+    "saturation_idx": 0.0751,
+    "cpu_max6h": 0.0742,
+    "loss_max72h": 0.0609,
+    "cwmp_std6h": 0.0557,
+    "cwmp_ma6h": 0.0535,
+    "cwmp_lag6h": 0.0525
+  },
+  "categorical_features": [
+    "gateway_id",
+    "firmware",
+    "region",
+    "isp"
+  ],
+  "n_features": 123,
+  "train_rows": 164250,
+  "test_rows": 54750,
+  "class_balance_ratio": 11
+}

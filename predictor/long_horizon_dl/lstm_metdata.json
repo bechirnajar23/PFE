@@ -1,0 +1,5 @@
+{
+  "threshold": 0.3101,
+  "model": "lstm_3day",
+  "note": "threshold optimisé via PR curve"
+}

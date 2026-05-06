@@ -1,0 +1,66 @@
+{
+  "title": "HGW Monitoring + ML/DL Predictions",
+  "uid": "hgw-complete",
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "État HGW",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "targets": [{
+        "rawSql": "SELECT LOCAL_STATUS FROM monitor_snapshots ORDER BY timestamp DESC LIMIT 1"
+      }]
+    },
+    {
+      "id": 2,
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "gridPos": {"x": 6, "y": 0, "w": 9, "h": 8},
+      "targets": [{
+        "rawSql": "SELECT timestamp, CPU_USAGE_PERCENT FROM monitor_snapshots WHERE $__timeFilter(timestamp) ORDER BY timestamp"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": {"x": 15, "y": 0, "w": 9, "h": 8},
+      "targets": [{
+        "rawSql": "SELECT timestamp, MEM_USAGE_PERCENT FROM monitor_snapshots WHERE $__timeFilter(timestamp) ORDER BY timestamp"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Latency",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [{
+        "rawSql": "SELECT timestamp, NET_LATENCY_MS FROM monitor_snapshots WHERE $__timeFilter(timestamp) AND NET_LATENCY_MS IS NOT NULL ORDER BY timestamp"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "WAN Traffic",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [{
+        "rawSql": "SELECT timestamp, WAN_RX_RATE_KBPS AS RX, WAN_TX_RATE_KBPS AS TX FROM monitor_snapshots WHERE $__timeFilter(timestamp) ORDER BY timestamp"
+      }]
+    },
+    {
+      "id": 6,
+      "title": "ML/DL Predictions",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 16, "w": 24, "h": 10},
+      "targets": [{
+        "rawSql": "SELECT timestamp, horizon, probability FROM predictions_log WHERE $__timeFilter(timestamp) ORDER BY timestamp"
+      }]
+    }
+  ]
+}

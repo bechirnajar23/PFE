@@ -1,0 +1,136 @@
+{
+  "pipeline": "Bi-LSTM 3-day horizon",
+  "label_column": "incident_in_72h",
+  "source_mode": "engineered",
+  "training_timestamp": "2026-05-03T11:28:39",
+  "note": "Bi-LSTM kept as Tier 2 long-horizon model. Artifacts are compatible with predictor/long_horizon_dl/bilstm_loader.py.",
+  "config": {
+    "granularity_min": 30,
+    "lookback_hours": 24,
+    "horizon_hours": 72,
+    "subsample": 2,
+    "seq_len": 24,
+    "features": [
+      "cpu_load",
+      "mem_used_pct",
+      "ping_latency",
+      "packet_loss",
+      "wan_status",
+      "cpu_mean_24h",
+      "ram_mean_24h",
+      "cpu_std_24h",
+      "ram_std_24h",
+      "cpu_slope_6h",
+      "ram_slope_6h",
+      "wan_instability_6h",
+      "health_score"
+    ],
+    "architecture": "Bi-LSTM 48->24 + Dense 32->16, no BatchNormalization",
+    "loss": "binary_crossentropy with class weights",
+    "optimizer": "Adam lr=0.001",
+    "epochs_requested": 20,
+    "batch_size": 128,
+    "stride": 2
+  },
+  "data": {
+    "input_csv": "C:\\Users\\bnajjar\\Desktop\\projet conda\\data\\hgw_long_term.csv",
+    "prepared_rows": 437940,
+    "period_start": "2020-01-01 06:00:00",
+    "period_end": "2024-12-29 23:30:00",
+    "positive_rate": 0.12224277298260036,
+    "split_rows": {
+      "train": 306558,
+      "val": 65691,
+      "test": 65691
+    },
+    "sequence_shapes": {
+      "train": [
+        153160,
+        24,
+        13
+      ],
+      "val": [
+        32727,
+        24,
+        13
+      ],
+      "test": [
+        32726,
+        24,
+        13
+      ]
+    }
+  },
+  "metrics_synthetic_test": {
+    "threshold": 0.6245301365852356,
+    "f1": 0.8745648781658865,
+    "precision": 0.9469716662334287,
+    "recall": 0.8124442462087422,
+    "tn": 28038,
+    "fp": 204,
+    "fn": 841,
+    "tp": 3643,
+    "n_test": 32726,
+    "n_pos_test": 4484,
+    "roc_auc": 0.9237841172456154,
+    "pr_auc": 0.8687825883178077
+  },
+  "history": {
+    "auc": [
+      0.9361975789070129,
+      0.9432512521743774,
+      0.9449269771575928,
+      0.9466133713722229,
+      0.9495967626571655,
+      0.951439619064331
+    ],
+    "loss": [
+      0.4754561185836792,
+      0.4302506446838379,
+      0.42250165343284607,
+      0.4165257513523102,
+      0.4059296250343323,
+      0.4010537564754486
+    ],
+    "prauc": [
+      0.8564907312393188,
+      0.8774417638778687,
+      0.8815127611160278,
+      0.883488655090332,
+      0.8893959522247314,
+      0.8930264115333557
+    ],
+    "val_auc": [
+      0.9388025403022766,
+      0.9351651072502136,
+      0.9337339401245117,
+      0.9315013289451599,
+      0.9345581531524658,
+      0.9266146421432495
+    ],
+    "val_loss": [
+      0.1947801262140274,
+      0.19785961508750916,
+      0.1963270902633667,
+      0.1975168138742447,
+      0.1851005256175995,
+      0.19291965663433075
+    ],
+    "val_prauc": [
+      0.8396592736244202,
+      0.79704749584198,
+      0.8131922483444214,
+      0.7844732403755188,
+      0.8007155656814575,
+      0.7373367547988892
+    ],
+    "learning_rate": [
+      0.0010000000474974513,
+      0.0010000000474974513,
+      0.0010000000474974513,
+      0.0010000000474974513,
+      0.0005000000237487257,
+      0.0005000000237487257
+    ]
+  }
+}

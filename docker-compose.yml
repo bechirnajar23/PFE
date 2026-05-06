@@ -1,0 +1,72 @@
+
+---
+
+# 🐳 3. docker-compose.yml
+
+
+services:
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: hgw_timescaledb
+    environment:
+      POSTGRES_USER: hgw_user
+      POSTGRES_PASSWORD: hgw_password
+      POSTGRES_DB: hgw_monitoring
+    ports:
+      - "5432:5432"
+    volumes:
+      - hgw_timescaledb_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hgw_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  collector:
+    build: ./collector
+    container_name: hgw_collector
+    env_file:
+      - .env
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    command: python data_collection.py
+
+  predictor:
+    build: ./predictor
+    container_name: hgw_predictor
+    env_file: .env
+    depends_on:
+      - timescaledb
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/predictor/long_horizon_dl
+      - ./models:/app/predictor/multi_horizon
+    command: python predict_service.py
+    environment:
+      - POSTGRES_USER=hgw_user
+      - POSTGRES_PASSWORD=hgw_password
+      - POSTGRES_DB=hgw_monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hgw_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - timescaledb
+    environment:
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=bachir2004najjar@gmail.com
+      - GF_SMTP_PASSWORD=yure zyyp rvyp budy
+      - GF_SMTP_FROM_ADDRESS=bachir2004najjar@gmail.com
+      - GF_SMTP_SKIP_VERIFY=true
+
+volumes:
+  hgw_timescaledb_data:
+  grafana_data:

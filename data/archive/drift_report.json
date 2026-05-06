@@ -1,0 +1,109 @@
+{
+  "cpu_load": {
+    "psi": 0.3068,
+    "ks_stat": 0.2229,
+    "ks_pval": 0.0,
+    "status": "DRIFT",
+    "ref_mean": 34.9171,
+    "new_mean": 33.2298,
+    "ref_std": 16.3083,
+    "new_std": 15.5897
+  },
+  "mem_used_pct": {
+    "psi": 0.5426,
+    "ks_stat": 0.2625,
+    "ks_pval": 0.0,
+    "status": "DRIFT",
+    "ref_mean": 48.9678,
+    "new_mean": 47.66,
+    "ref_std": 14.9935,
+    "new_std": 14.7368
+  },
+  "ping_latency": {
+    "psi": 0.1624,
+    "ks_stat": 0.3879,
+    "ks_pval": 0.0,
+    "status": "WARN",
+    "ref_mean": 46.3211,
+    "new_mean": 35.2307,
+    "ref_std": 36.4629,
+    "new_std": 32.2388
+  },
+  "packet_loss": {
+    "psi": 0.0365,
+    "ks_stat": 0.0361,
+    "ks_pval": 0.01489,
+    "status": "OK",
+    "ref_mean": 1.9319,
+    "new_mean": 2.0555,
+    "ref_std": 3.2595,
+    "new_std": 3.2734
+  },
+  "cpu_slope_6h": {
+    "psi": 0.0078,
+    "ks_stat": 0.0166,
+    "ks_pval": 0.673962,
+    "status": "OK",
+    "ref_mean": 0.0003,
+    "new_mean": 0.0036,
+    "ref_std": 1.4708,
+    "new_std": 1.4219
+  },
+  "ram_slope_6h": {
+    "psi": 0.0402,
+    "ks_stat": 0.0235,
+    "ks_pval": 0.246674,
+    "status": "OK",
+    "ref_mean": 0.0001,
+    "new_mean": -0.0001,
+    "ref_std": 0.9246,
+    "new_std": 0.8405
+  },
+  "wan_status": {
+    "psi": 0.0004,
+    "ks_stat": 0.0024,
+    "ks_pval": 1.0,
+    "status": "OK",
+    "ref_mean": 0.9838,
+    "new_mean": 0.985,
+    "ref_std": 0.1264,
+    "new_std": 0.1216
+  },
+  "cwmp_rss_mb": {
+    "psi": 0.1047,
+    "ks_stat": 0.0568,
+    "ks_pval": 1.1e-05,
+    "status": "WARN",
+    "ref_mean": 124.9286,
+    "new_mean": 138.066,
+    "ref_std": 240.8674,
+    "new_std": 244.0592
+  },
+  "dhcp_rss_mb": {
+    "psi": 0.0038,
+    "ks_stat": 0.0147,
+    "ks_pval": 0.805192,
+    "status": "OK",
+    "ref_mean": 8.5003,
+    "new_mean": 8.4978,
+    "ref_std": 0.3999,
+    "new_std": 0.3997
+  },
+  "nemo_rss_mb": {
+    "psi": 0.0412,
+    "ks_stat": 0.0361,
+    "ks_pval": 0.014623,
+    "status": "OK",
+    "ref_mean": 23.3269,
+    "new_mean": 23.469,
+    "ref_std": 3.0068,
+    "new_std": 3.0413
+  },
+  "__summary__": {
+    "decision": "RETRAIN_REQUIRED",
+    "drift_count": 2,
+    "warn_count": 2,
+    "psi_warn_threshold": 0.1,
+    "psi_trigger_threshold": 0.25
+  }
+}

@@ -1,0 +1,13 @@
+pandas
+numpy
+scikit-learn
+catboost
+tensorflow
+psycopg2-binary
+psycopg2
+sqlalchemy
+matplotlib
+joblib
+flask
+python-dotenv
+dotenv

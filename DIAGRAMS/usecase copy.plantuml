@@ -1,0 +1,30 @@
+@startuml
+
+participant "HGW" as HGW
+control "<<control>> Collector" as Collector
+participant "<<entity>> TimescaleDB" as DB
+participant "<<control>> Airflow" as Airflow
+participant "<<control>> Predictor ML/DL" as Predictor
+participant "<<boundary>> Grafana" as Grafana
+participant "<<boundary>> Notification API" as Notif
+
+HGW -> Collector : Envoi métriques
+Collector -> DB : INSERT snapshots
+
+Airflow -> Predictor : Déclenche pipeline
+Predictor -> DB : Lire données
+DB --> Predictor : Données historiques
+
+Predictor -> Predictor : Analyse ML + LSTM
+Predictor -> DB : INSERT predictions
+
+Grafana -> DB : Query predictions
+DB --> Grafana : Résultats
+
+Grafana -> Grafana : Vérifier seuil
+
+alt Score > seuil
+    Grafana -> Notif : Envoyer Email/SMS
+end
+
+@enduml

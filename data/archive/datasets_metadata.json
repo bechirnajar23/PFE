@@ -1,0 +1,62 @@
+{
+  "years": 5,
+  "n_gateways": 5,
+  "gateway_profiles": {
+    "HGW_001": {
+      "cpu_base": 30.0,
+      "mem_base": 43.0,
+      "ping_base": 30.0,
+      "firmware": "v15.10.20",
+      "region": "EU-W",
+      "isp": "ISP_A"
+    },
+    "HGW_002": {
+      "cpu_base": 25.0,
+      "mem_base": 40.0,
+      "ping_base": 55.0,
+      "firmware": "v15.10.22",
+      "region": "EU-W",
+      "isp": "ISP_A"
+    },
+    "HGW_003": {
+      "cpu_base": 38.0,
+      "mem_base": 50.0,
+      "ping_base": 28.0,
+      "firmware": "v15.10.20",
+      "region": "EU-S",
+      "isp": "ISP_B"
+    },
+    "HGW_004": {
+      "cpu_base": 22.0,
+      "mem_base": 38.0,
+      "ping_base": 35.0,
+      "firmware": "v15.9.18",
+      "region": "EU-N",
+      "isp": "ISP_C"
+    },
+    "HGW_005": {
+      "cpu_base": 27.0,
+      "mem_base": 41.0,
+      "ping_base": 22.0,
+      "firmware": "v15.10.30",
+      "region": "EU-W",
+      "isp": "ISP_A"
+    }
+  },
+  "episode_distribution": {
+    "slow": 0.55,
+    "rapid": 0.2,
+    "recovered": 0.15,
+    "transient_spike": 0.1
+  },
+  "short_term": {
+    "step_minutes": 60,
+    "rows": 219000,
+    "crashes": 7955
+  },
+  "long_term": {
+    "step_minutes": 30,
+    "rows": 438000,
+    "crashes": 14334
+  }
+}
