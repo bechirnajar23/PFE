@@ -1,61 +1,62 @@
 @startuml
+title Systeme intelligent pour la prediction des incidents sur les "HGW"\nDiagramme de cas d'utilisation
 left to right direction
 
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName Arial
-skinparam defaultFontSize 10
-skinparam actorStyle awesome
-skinparam Usecase {
-    BackgroundColor #BDD7EE
-    BorderColor #000000
-    FontColor #000000
-    FontSize 10
-}
-skinparam Actor {
-    BackgroundColor #FFFFFF
-    BorderColor #000000
-    FontColor #000000
-    FontSize 10
-}
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam actorStyle stick
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+skinparam ArrowColor #1F2937
+skinparam ArrowFontColor #1F2937
+skinparam ArrowThickness 1.2
 
-actor "Utilisateur final" as USER
-actor "Operateur / ISP / Admin" as OPS
-
-rectangle "Systeme HGW Predictive Maintenance" {
-    usecase "Lancer le systeme" as UC_START
-    usecase "Consulter dashboard\nGrafana" as UC_DASH
-    usecase "Configurer seuils\net modeles" as UC_CONFIG
-    usecase "Recevoir metriques HGW" as UC_COLLECT
-    usecase "Evaluer etat HGW\npar regles metier" as UC_RULES
-    usecase "Predire anomalies\nchaque 5 min" as UC_PREDICT
-    usecase "Expliquer cause alerte\nSHAP / regles metier" as UC_EXPLAIN
-    usecase "Envoyer alerte\nEmail ou SMS" as UC_ALERT
-    usecase "Reentrainer modeles\ntous les 7 jours" as UC_RETRAIN
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #111827
+  FontColor #111827
 }
 
-OPS --> UC_START
-OPS --> UC_DASH
-OPS --> UC_CONFIG
-OPS --> UC_RETRAIN
-USER --> UC_ALERT
+skinparam usecase {
+  BackgroundColor #EAF2FF
+  BorderColor #24527A
+  FontColor #111827
+  BorderThickness 1.4
+}
 
-UC_START --> UC_COLLECT
-UC_COLLECT --> UC_RULES
-UC_RULES --> UC_PREDICT
-UC_PREDICT --> UC_EXPLAIN
-UC_RULES --> UC_EXPLAIN
-UC_EXPLAIN --> UC_ALERT
+skinparam rectangle {
+  BackgroundColor #F8FAFC
+  BorderColor #94A3B8
+  FontColor #0F172A
+  BorderThickness 1.2
+}
 
-note right of UC_ALERT
-L'alerte utilisateur est envoyee
-uniquement si l'etat courant est
-URGENT ou CRITICAL.
-end note
+actor "Admin /\nOperateur ISP" as ADMIN
 
-note right of UC_CONFIG
-Cas optionnel:
-si aucun changement de configuration
-n'est necessaire, l'operateur ne fait rien.
+rectangle "Systeme intelligent pour la prediction des incidents sur les HGW" as SYSTEM {
+  usecase "Lancer le systeme" as UC_START
+  usecase "Consulter dashboard" as UC_DASH
+  usecase "Voir monitoring\nHGW" as UC_MONITOR
+  usecase "Voir predictions\nmulti-horizon" as UC_PRED
+  usecase "Voir alertes et\nexplications XAI\n(regles + SHAP)" as UC_ALERT_XAI
+  usecase "Declencher alerte\nSMS / Email" as UC_TRIGGER
+}
+
+ADMIN --> UC_DASH
+ADMIN --> UC_START
+
+UC_DASH ..> UC_ALERT_XAI : <<include>>
+UC_DASH ..> UC_PRED : <<include>>
+UC_DASH ..> UC_MONITOR : <<include>>
+UC_ALERT_XAI ..> UC_TRIGGER : <<include>>
+
+note right of UC_TRIGGER
+SMS / Email seulement si
+etat URGENT ou CRITICAL.
 end note
 
 @enduml

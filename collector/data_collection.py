@@ -1,6 +1,7 @@
 # data_collection.py
 from ast import main
 import json
+import os
 import time
 import threading
 from collections import deque
@@ -15,6 +16,10 @@ WAN_IFACE = "eth0"
 DHCP_PROCESS = "dnsmasq"
 PING_TARGET = "8.8.8.8"
 PING_ENABLE = True
+try:
+    PING_COMMAND_DELAY = float(os.getenv("PING_COMMAND_DELAY", "1.2"))
+except (TypeError, ValueError):
+    PING_COMMAND_DELAY = 1.2
 
 memory_usage = deque(maxlen=200)
 time_points = deque(maxlen=200)
@@ -355,7 +360,7 @@ def read_ping_status(tn):
     out = send_command(
         tn,
         f"ping -c 1 -W 1 {PING_TARGET} 2>/dev/null",
-        timeout=5,
+        timeout=PING_COMMAND_DELAY,
     )
     import re
     if "time=" in out:
@@ -529,6 +534,7 @@ def collect_data():
             print("[INFO] Collecte HGW démarrée ✅")
 
             while True:
+                cycle_started = time.monotonic()
                 ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
                 now = datetime.now().strftime("%H:%M:%S")
 
@@ -610,7 +616,8 @@ def collect_data():
                     f"NET_PING_STATUS={snap['NET_PING_STATUS']}"
                 )
 
-                time.sleep(interval)
+                elapsed = time.monotonic() - cycle_started
+                time.sleep(max(0, interval - elapsed))
 
         except Exception as e:
             print(f"[ERROR] collect_data : {e}")

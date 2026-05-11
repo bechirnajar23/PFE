@@ -27,15 +27,6 @@ services:
         condition: service_healthy
     command: python data_collection.py
 
-  sms:
-    build: ./predictor
-    container_name: hgw_sms_service
-    env_file:
-      - .env
-    ports:
-      - "5000:5000"
-    command: python sms_service.py
-
   predictor:
     build: ./predictor
     container_name: hgw_predictor
@@ -44,14 +35,29 @@ services:
     depends_on:
       timescaledb:
         condition: service_healthy
-      sms:
-        condition: service_started
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./predictor/multi_horizon:/app/multi_horizon
       - ./predictor/long_horizon_dl:/app/long_horizon_dl
     command: python predict_service.py
+
+  backend:
+    build: ./backend
+    container_name: hgw_backend_api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      grafana:
+        condition: service_started
+    environment:
+      GRAFANA_PUBLIC_URL: "http://localhost:3000"
+      GRAFANA_INTERNAL_URL: "http://grafana:3000"
+      CORS_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
 
   grafana:
     image: grafana/grafana:latest
@@ -75,6 +81,21 @@ services:
       GF_SMTP_FROM_ADDRESS: "${GF_SMTP_FROM_ADDRESS:-}"
       GF_SMTP_SKIP_VERIFY: "${GF_SMTP_SKIP_VERIFY:-true}"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/hgw_monitoring.json
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_ANONYMOUS_ORG_NAME: "Main Org."
+
+  frontend:
+    build: ./frontend
+    container_name: hgw_frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      grafana:
+        condition: service_started
+      backend:
+        condition: service_started
 
 volumes:
   hgw_timescaledb_data:

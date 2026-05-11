@@ -14,7 +14,7 @@ Le but est d'anticiper les incidents avant le crash afin de reduire les interrup
 - Prediction continue toutes les 5 minutes pendant toute la journee.
 - Reentrainement automatique des modeles tous les 7 jours.
 - Detection metier des etats critiques actuels (`URGENT`, `CRITICAL`).
-- Explication des alertes via regles metier et explainer ML/SHAP.
+- Explication des alertes via regles metier et SHAP CatBoost.
 - Notification utilisateur uniquement pour les etats `URGENT` ou `CRITICAL`.
 - Export CSV des predictions pour notebooks de visualisation.
 - Dashboard Grafana pour suivi operationnel.
@@ -86,6 +86,18 @@ predictor/long_horizon_dl/lstm_metdata.json
 ```
 
 Seuil actuel: `0.3101`.
+
+### XAI / SHAP
+
+Les modeles CatBoost court terme calculent une explication locale SHAP a chaque cycle de prediction. Pour chaque horizon, le systeme stocke les principales features qui augmentent ou diminuent le risque dans `predictions_log.explainer_json`.
+
+Le frontend consomme l'endpoint:
+
+```text
+GET /api/xai/latest
+```
+
+Les pages `Predictions` et `Alertes` affichent les contributions SHAP sous forme de barres: CPU, memoire, latence, instabilite WAN, health score, etc. Les alertes SMS/e-mail peuvent aussi inclure un resume XAI.
 
 ## Structure du projet
 
@@ -195,7 +207,9 @@ Services demarres:
 | Collector | `hgw_collector` | - | Collecte HGW |
 | SMS | `hgw_sms_service` | 5000 | API notification SMS |
 | Predictor | `hgw_predictor` | - | Prediction toutes les 5 min + reentrainement 7 jours |
+| Backend API | `hgw_backend_api` | 8000 | API frontend, KPI, etat services, liens Grafana |
 | Grafana | `hgw_grafana` | 3000 | Dashboard |
+| Frontend | `hgw_frontend` | 8080 | Interface React de presentation |
 
 Verifier l'etat:
 
@@ -205,6 +219,8 @@ docker compose logs -f timescaledb
 docker compose logs -f collector
 docker compose logs -f predictor
 docker compose logs -f sms
+docker compose logs -f backend
+docker compose logs -f frontend
 ```
 
 ### 2. Initialiser ou verifier la base
@@ -237,6 +253,28 @@ Ouvrir:
 ```text
 http://localhost:3000
 ```
+
+Interface React de presentation:
+
+```text
+http://localhost:8080
+```
+
+API backend:
+
+```text
+http://localhost:8000/health
+http://localhost:8000/api/summary
+http://localhost:8000/api/dashboard-config
+```
+
+Cette interface appelle l'API backend et affiche directement des courbes React natives:
+
+- page Accueil: synthese globale et courbes principales;
+- monitoring HGW: CPU, memoire, latence et debit WAN;
+- page Predictions: probabilites multi-horizon, seuils et diagnostic DL;
+- page Alertes: evenements critiques, repartition des etats et regles d'alerte;
+- bouton d'ouverture Grafana pour consulter les dashboards originaux.
 
 Identifiants par defaut Grafana:
 

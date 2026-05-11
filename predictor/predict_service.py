@@ -3,8 +3,6 @@ import os
 import smtplib
 import subprocess
 import time
-import urllib.error
-import urllib.request
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
@@ -27,7 +25,6 @@ RETRAIN_RUN_ON_START = os.getenv("RETRAIN_RUN_ON_START", "false").strip().lower(
 RETRAIN_COMMAND = os.getenv("RETRAIN_COMMAND", "python train_multi_horizon.py")
 RETRAIN_STATE_FILE = Path(os.getenv("RETRAIN_STATE_FILE", "/app/data/retrain_state.json"))
 
-ALERT_SMS_URL = os.getenv("ALERT_SMS_URL", "").strip()
 ALERT_EMAIL_TO = [x.strip() for x in os.getenv("ALERT_EMAIL_TO", "").split(",") if x.strip()]
 ALERT_COOLDOWN_MINUTES = int(os.getenv("ALERT_COOLDOWN_MINUTES", "60"))
 ALERT_STATE_FILE = Path(os.getenv("ALERT_STATE_FILE", "/app/data/alert_state.json"))
@@ -180,6 +177,45 @@ def alert_explanation_from_row(row, results: dict) -> tuple[str, dict | None]:
     return explanation, None
 
 
+def build_explainer_payload(results: dict, latest_row, horizon: str | None) -> dict | None:
+    if latest_row is not None:
+        business_explanation, business_payload = alert_explanation_from_row(latest_row, results)
+    else:
+        business_explanation = (results.get("business_alert") or {}).get("message", "")
+        business_payload = None
+
+    prediction = (results.get("predictions") or {}).get(horizon or "", {})
+    shap_payload = prediction.get("shap")
+    payload = {
+        "type": "hgw_xai",
+        "horizon": horizon,
+        "business_explanation": business_explanation,
+        "business": business_payload,
+        "shap": shap_payload,
+    }
+    if shap_payload:
+        payload["summary"] = shap_payload.get("summary")
+    return payload
+
+
+def shap_hint_from_results(results: dict, preferred_horizon: str | None = None) -> tuple[str | None, dict | None]:
+    predictions = results.get("predictions") or {}
+    if preferred_horizon in predictions and predictions[preferred_horizon].get("shap"):
+        shap_payload = predictions[preferred_horizon]["shap"]
+        return shap_payload.get("summary"), shap_payload
+
+    ranked = sorted(
+        predictions.items(),
+        key=lambda item: float(item[1].get("probability") or 0),
+        reverse=True,
+    )
+    for _horizon, prediction in ranked:
+        if prediction.get("shap"):
+            shap_payload = prediction["shap"]
+            return shap_payload.get("summary"), shap_payload
+    return None, None
+
+
 def save_predictions(results: dict, gateway_id: str, latest_row=None) -> None:
     decision_level, decision_message, _source = decision_from_results(results)
     if latest_row is not None:
@@ -187,7 +223,6 @@ def save_predictions(results: dict, gateway_id: str, latest_row=None) -> None:
     else:
         decision_explanation, explainer_json = (results.get("business_alert") or {}).get("message", ""), None
     predictions_json = json.dumps(results, ensure_ascii=True, default=str)
-    explainer_json_text = json.dumps(explainer_json, ensure_ascii=True, default=str) if explainer_json else None
     timestamp = pd.to_datetime(results["timestamp"]).to_pydatetime()
     predictions = dict(results.get("predictions", {}))
 
@@ -205,6 +240,12 @@ def save_predictions(results: dict, gateway_id: str, latest_row=None) -> None:
         for horizon, pred in predictions.items():
             probability = pred.get("probability")
             threshold = pred.get("threshold")
+            horizon_explainer = build_explainer_payload(results, latest_row, horizon)
+            explainer_json_text = (
+                json.dumps(horizon_explainer, ensure_ascii=True, default=str)
+                if horizon_explainer
+                else None
+            )
             conn.execute(
                 text(
                     """
@@ -264,23 +305,6 @@ def should_notify(results: dict, gateway_id: str, latest_row) -> bool:
     return True
 
 
-def send_sms_alert(payload: dict) -> None:
-    if not ALERT_SMS_URL:
-        return
-    data = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        ALERT_SMS_URL,
-        data=data,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=10) as response:
-            print(f"[ALERT] SMS API status={response.status}")
-    except urllib.error.URLError as exc:
-        print(f"[WARN] SMS alert failed: {exc}")
-
-
 def send_email_alert(subject: str, body: str) -> None:
     if not ALERT_EMAIL_TO or not SMTP_HOST:
         return
@@ -323,16 +347,25 @@ def notify_if_needed(results: dict, gateway_id: str, latest_row) -> None:
     if source and source in results.get("predictions", {}):
         payload["probability"] = results["predictions"][source].get("probability")
 
+    shap_summary, shap_payload = shap_hint_from_results(results, source)
+    if shap_summary:
+        payload["xai"] = shap_summary
+    if shap_payload:
+        payload["shap"] = {
+            "horizon": shap_payload.get("horizon"),
+            "top_features": shap_payload.get("top_features", [])[:3],
+        }
+
     subject = f"[HGW] {current_status} - {gateway_id}"
     body = (
         f"Gateway: {gateway_id}\n"
         f"Etat: {current_status}\n"
         f"Message: {decision_message}\n"
         f"Explication: {explanation}\n"
+        f"XAI: {shap_summary or 'N/A'}\n"
         f"Source: {source or 'business'}\n"
         f"Timestamp: {results.get('timestamp')}\n"
     )
-    send_sms_alert(payload)
     send_email_alert(subject, body)
 
 

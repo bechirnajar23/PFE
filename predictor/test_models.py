@@ -43,7 +43,7 @@ from pathlib import Path
 warnings.filterwarnings('ignore')
 
 import joblib
-from catboost import CatBoostClassifier
+from catboost import CatBoostClassifier, Pool
 import tensorflow as tf
 
 # =============================================================================
@@ -67,6 +67,52 @@ ML_FEATURES = [
     'sin_hour', 'cos_hour', 'cpu_x_mem', 'saturation_idx', 'mem_headroom',
     'health_score',
 ]
+
+FEATURE_LABELS = {
+    'cpu_load': 'Charge CPU',
+    'mem_used_pct': 'Memoire utilisee',
+    'ping_latency': 'Latence ping',
+    'packet_loss': 'Perte paquets',
+    'wan_status': 'Etat WAN',
+    'reboot_event': 'Evenement reboot',
+    'recovery_phase': 'Phase recovery',
+    'cwmp_rss_mb': 'Memoire CWMP',
+    'dhcp_rss_mb': 'Memoire DHCP',
+    'nemo_rss_mb': 'Memoire NEMO',
+    'cpu_slope_5min': 'Pente CPU 5 min',
+    'cpu_slope_30min': 'Pente CPU 30 min',
+    'ram_slope_5min': 'Pente RAM 5 min',
+    'ram_slope_30min': 'Pente RAM 30 min',
+    'cpu_mean_5min': 'CPU moyen 5 min',
+    'cpu_mean_30min': 'CPU moyen 30 min',
+    'cpu_std_30min': 'Variation CPU 30 min',
+    'cpu_max_30min': 'CPU max 30 min',
+    'mem_mean_5min': 'Memoire moyenne 5 min',
+    'mem_mean_30min': 'Memoire moyenne 30 min',
+    'mem_std_30min': 'Variation memoire 30 min',
+    'mem_max_30min': 'Memoire max 30 min',
+    'ping_mean_5min': 'Latence moyenne 5 min',
+    'ping_mean_30min': 'Latence moyenne 30 min',
+    'ping_max_5min': 'Latence max 5 min',
+    'loss_mean_5min': 'Perte moyenne 5 min',
+    'wan_instability_5min': 'Instabilite WAN 5 min',
+    'cpu_lag1m': 'CPU t-1 min',
+    'cpu_lag3m': 'CPU t-3 min',
+    'cpu_lag5m': 'CPU t-5 min',
+    'cpu_lag10m': 'CPU t-10 min',
+    'cpu_lag15m': 'CPU t-15 min',
+    'mem_lag1m': 'Memoire t-1 min',
+    'mem_lag3m': 'Memoire t-3 min',
+    'mem_lag5m': 'Memoire t-5 min',
+    'mem_lag10m': 'Memoire t-10 min',
+    'mem_lag15m': 'Memoire t-15 min',
+    'sin_hour': 'Cycle horaire sin',
+    'cos_hour': 'Cycle horaire cos',
+    'cpu_x_mem': 'Interaction CPU x memoire',
+    'saturation_idx': 'Indice saturation',
+    'mem_headroom': 'Marge memoire',
+    'health_score': 'Health score',
+}
 
 DL_FEATURES = [
     'cpu_load', 'mem_used_pct', 'ping_latency', 'packet_loss', 'wan_status',
@@ -374,7 +420,7 @@ def build_ml_features(df_1min):
 def build_dl_features(df_1min):
     """Compute the 13 DL features at 30-min granularity."""
     g = df_1min.copy().sort_values('timestamp').reset_index(drop=True)
-    if len(g) < 60:
+    if len(g) < 2:
         return None
 
     win_24h = min(len(g), 1440)
@@ -394,6 +440,63 @@ def build_dl_features(df_1min):
     # Resample to 30-min
     g30 = g.set_index('timestamp')[DL_FEATURES].resample('30min').mean().dropna()
     return g30
+
+
+def explain_catboost_prediction(model, x_row, features, horizon, probability, top_n=6):
+    """Return local SHAP explanation for one CatBoost prediction."""
+    pool = Pool(x_row[features], feature_names=features)
+    shap_values = np.asarray(model.get_feature_importance(pool, type='ShapValues'))
+
+    if shap_values.ndim == 3:
+        # Multiclass safety: keep the positive class when available.
+        class_idx = 1 if shap_values.shape[2] > 1 else 0
+        feature_shap = shap_values[0, :-1, class_idx]
+        base_value = shap_values[0, -1, class_idx]
+    else:
+        feature_shap = shap_values[0, :-1]
+        base_value = shap_values[0, -1]
+
+    abs_total = float(np.sum(np.abs(feature_shap))) or 1.0
+    x_values = x_row.iloc[0]
+    top_indexes = np.argsort(np.abs(feature_shap))[::-1][:top_n]
+    top_features = []
+
+    for idx in top_indexes:
+        feature = features[int(idx)]
+        shap_value = float(feature_shap[int(idx)])
+        value = x_values.get(feature)
+        if pd.isna(value):
+            clean_value = None
+        else:
+            clean_value = float(value) if isinstance(value, (int, float, np.number)) else str(value)
+
+        top_features.append({
+            'feature': feature,
+            'label': FEATURE_LABELS.get(feature, feature),
+            'value': clean_value,
+            'shap_value': round(shap_value, 6),
+            'abs_shap': round(abs(shap_value), 6),
+            'share': round(abs(shap_value) / abs_total, 4),
+            'impact': 'increase' if shap_value >= 0 else 'decrease',
+        })
+
+    increasing = [item['label'] for item in top_features if item['impact'] == 'increase']
+    decreasing = [item['label'] for item in top_features if item['impact'] == 'decrease']
+    if increasing:
+        summary = 'Risque augmente surtout par: ' + ', '.join(increasing[:3])
+    elif decreasing:
+        summary = 'Risque attenue surtout par: ' + ', '.join(decreasing[:3])
+    else:
+        summary = 'Aucun facteur dominant detecte'
+
+    return {
+        'type': 'catboost_shap',
+        'horizon': horizon,
+        'probability': round(float(probability), 6),
+        'base_value': round(float(base_value), 6),
+        'summary': summary,
+        'top_features': top_features,
+    }
 
 
 # =============================================================================
@@ -518,6 +621,11 @@ def predict_at_timestamp(df_raw, target_ts, models):
         'predictions': {},
         'ground_truth': None,
         'business_alert': None,
+        'xai': {
+            'type': 'catboost_shap',
+            'description': 'Explication locale des predictions CatBoost par valeurs SHAP.',
+            'horizons': {},
+        },
     }
 
     # Current raw state = latest row available before target_ts
@@ -574,34 +682,53 @@ def predict_at_timestamp(df_raw, target_ts, models):
             m = models[h_key]
             prob = float(m['model'].predict_proba(X_ml)[0, 1])
             alert = prob >= m['threshold']
+            shap_explanation = None
+            try:
+                shap_explanation = explain_catboost_prediction(
+                    m['model'], X_ml, ML_FEATURES, h_key, prob
+                )
+                results['xai']['horizons'][h_key] = shap_explanation
+            except Exception as exc:
+                results['xai_error'] = f'SHAP indisponible pour {h_key}: {exc}'
             results['predictions'][h_key] = {
                 'horizon_min': m['horizon_min'],
                 'probability': round(prob, 4),
                 'threshold': round(m['threshold'], 4),
                 'alert': alert,
+                'shap': shap_explanation,
             }
 
     # ============ DL prediction ============
     if 'bilstm_3d' in models:
         df_30m = build_dl_features(df_1m)
-        if df_30m is None or len(df_30m) < 48:
+        LSTM_MIN_ROWS = 24   # 24 × 30-min = 12h minimum de données réelles
+        if df_30m is None or len(df_30m) < LSTM_MIN_ROWS:
             results['dl_error'] = (
                 f'Pas assez de données 30-min: {len(df_30m) if df_30m is not None else 0} '
-                f'(besoin de 48 = 24h)'
+                f'(besoin de {LSTM_MIN_ROWS} = 12h)'
             )
         else:
-            # Last 48 samples (24h at 30-min) → subsample by 2 → 24 timesteps
-            X_last_24h = df_30m.tail(48)[DL_FEATURES]
+            TARGET_STEPS = 24
+            available = df_30m[DL_FEATURES]
+            n_avail = len(available)
 
-            # Check NaN
-            if np.isnan(X_last_24h.values).any():
+            if n_avail >= 48:
+                # Full 24h window: 48 × 30-min → subsample by 2 → 24 timesteps
+                X_seq = available.tail(48).values[::2]
+                coverage = '24h'
+            else:
+                # 12–24h window: take last 24 rows directly (no padding)
+                X_seq = available.tail(TARGET_STEPS).values
+                coverage = f'{n_avail * 30 // 60}h'
+
+            if np.isnan(X_seq).any():
                 results['dl_error'] = 'NaN dans les features DL'
             else:
-                X_scaled = models['bilstm_3d']['scaler'].transform(X_last_24h)
-                seq = X_scaled[::2][np.newaxis, ...].astype(np.float32)  # (1, 24, 13)
+                X_scaled = models['bilstm_3d']['scaler'].transform(X_seq)
+                seq = X_scaled[np.newaxis, ...].astype(np.float32)  # (1, 24, 13)
 
-                if seq.shape != (1, 24, 13):
-                    results['dl_error'] = f'Shape attendue (1,24,13), obtenu {seq.shape}'
+                if seq.shape != (1, TARGET_STEPS, 13):
+                    results['dl_error'] = f'Shape attendue (1,{TARGET_STEPS},13), obtenu {seq.shape}'
                 else:
                     prob = float(models['bilstm_3d']['model'].predict(seq, verbose=0)[0, 0])
                     th = models['bilstm_3d'].get(
@@ -613,6 +740,7 @@ def predict_at_timestamp(df_raw, target_ts, models):
                         'probability': round(prob, 6),
                         'threshold': round(th, 4),
                         'alert': prob >= th,
+                        'coverage': coverage,
                     }
 
     return results

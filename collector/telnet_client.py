@@ -8,6 +8,10 @@ load_dotenv()
 HOST = os.getenv("HGW_HOST")
 USER = os.getenv("HGW_USER")
 PASSWORD = os.getenv("HGW_PASSWORD")
+try:
+    COMMAND_DELAY = float(os.getenv("TELNET_COMMAND_DELAY", "0.4"))
+except (TypeError, ValueError):
+    COMMAND_DELAY = 0.4
 
 def create_telnet_client():
     try:
@@ -27,7 +31,9 @@ def create_telnet_client():
         return None
 
 
-def send_command(tn, command, timeout=2):
+def send_command(tn, command, timeout=None):
+    if timeout is None:
+        timeout = COMMAND_DELAY
     tn.write((command + "\n").encode())
 
     time.sleep(timeout)

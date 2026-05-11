@@ -1,50 +1,20 @@
+﻿# Report & assets (local only)
+report/
+assets/
+
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
-ENV/
+*.pyc
+*.pyo
+.env
 
-# Data (garder seulement les exemples)
+# Data & models (large files)
 data/*.csv
-!data/example_*.csv
-*.pkl
-!transfer_scaler.pkl
-
-# Models (sauf metadata)
-predictor/multi_horizon/*.cbm
-predictor/long_horizon_dl/*.h5
-predictor/long_horizon_dl/*.keras
+data/*.json
 
 # Jupyter
 .ipynb_checkpoints/
-notebooks/.ipynb_checkpoints/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Docker
-.env
-docker-compose.override.yml
-
-# Logs
-*.log
-logs/
-/tmp/
-
-# Build
-dist/
-build/
-*.egg-info/

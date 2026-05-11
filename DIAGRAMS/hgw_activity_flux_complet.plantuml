@@ -1,107 +1,113 @@
 @startuml
+title Activite globale - HGW Predictive Maintenance
+
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName Arial
 skinparam defaultFontSize 10
+skinparam shadowing false
 skinparam Activity {
-    BackgroundColor #BDD7EE
-    BorderColor #000000
-    BorderThickness 1
-    FontColor #000000
-    FontSize 10
+  BackgroundColor #EAF2FF
+  BorderColor #24527A
+  BorderThickness 1.2
+  FontColor #111827
 }
 skinparam Diamond {
-    BackgroundColor #BDD7EE
-    BorderColor #000000
-    FontColor #000000
+  BackgroundColor #FFF7ED
+  BorderColor #C2410C
+  FontColor #111827
 }
 skinparam Arrow {
-    Color #000000
-    FontColor #000000
-    FontSize 9
-    Thickness 1
+  Color #111827
+  FontColor #111827
+  FontSize 9
+  Thickness 1.2
 }
 skinparam Swimlane {
-    BackgroundColor #FFFFFF
-    BorderColor #000000
-    BorderThickness 1
-    TitleBackgroundColor #FFFFFF
-    TitleFontStyle plain
+  BackgroundColor #FFFFFF
+  BorderColor #94A3B8
+  BorderThickness 1
+  TitleBackgroundColor #F8FAFC
+  TitleFontStyle bold
+  TitleFontColor #0F172A
 }
 
 |Humain|
 start
-:Demarrer la stack Docker;
-:Consulter le dashboard;
+:Lancer la stack Docker;
+:Consulter interface\nfrontend ou Grafana;
 
-|Systemes/Interfaces|
-:Service de collecte actif;
+|Systemes / Interfaces|
+:Activer service de collecte;
 :Ouvrir port d'ecoute metriques;
 
-while (Journee de monitoring active ?) is (oui)
-    |Systemes/Interfaces|
-    :Recevoir metriques HGW sur port dedie;
-    :Normalisation du snapshot;
-    :Calcul du statut local par regles metier;
-    :Generer explication metier;
+while (Monitoring actif ?) is (oui)
+  |Systemes / Interfaces|
+  :Recevoir metriques HGW;
+  :Normaliser le snapshot;
+  :Evaluer etat local\npar regles metier;
+  :Generer explication metier;
 
-    if (Snapshot valide ?) then (oui)
-        |Stockage|
-        :Inserer dans monitor_snapshots;
-    else (non)
-        |Systemes/Interfaces|
-        :Completer avec fallback / valeurs connues;
-        |Stockage|
-        :Inserer snapshot partiel;
-    endif
+  if (Snapshot valide ?) then (oui)
+    |Stockage|
+    :Inserer monitor_snapshots;
+  else (non)
+    |Systemes / Interfaces|
+    :Completer avec fallback\nou valeurs connues;
+    |Stockage|
+    :Inserer snapshot partiel;
+  endif
 
-    |Systemes/Interfaces|
-    :Attendre prochain cycle de prediction 5 min;
-    :Service de prediction lit les mesures recentes;
+  |Systemes / Interfaces|
+  :Attendre cycle prediction\n5 minutes;
+  :Lire mesures recentes;
 
-    if (Historique suffisant ?) then (oui)
-        :Construire features ML/DL;
-        :Executer modeles CatBoost;
-        :Executer modele LSTM;
-        :Comparer probabilites aux seuils;
-        :Expliquer prediction par SHAP / regles metier;
-
-        |Stockage|
-        :Inserer predictions et explications;
-
-        |Systemes/Interfaces|
-        if (Etat URGENT ou CRITICAL ?) then (oui)
-            :Envoyer notification Email/SMS avec cause;
-            |Humain|
-            :Recevoir alerte Email ou SMS;
-        else (non)
-            |Humain|
-            :Consulter dashboard sans notification utilisateur;
-        endif
-    else (non)
-        |Systemes/Interfaces|
-        :Attendre plus de donnees;
-    endif
-
-    |Systemes/Interfaces|
-    if (7 jours ecoules ?) then (oui)
-        :Declencher reentrainement;
-        |Stockage|
-        :Fournir donnees historiques;
-        |Systemes/Interfaces|
-        :Reentrainer les modeles;
-        :Recharger les artefacts ML;
-    else (non)
-        :Conserver les modeles actifs;
-    endif
+  if (Historique suffisant ?) then (oui)
+    :Construire features ML/DL;
+    :Executer modeles CatBoost;
+    :Executer modele LSTM;
+    :Comparer aux seuils;
+    :Calculer SHAP CatBoost;
 
     |Stockage|
-    :Exposer donnees a Grafana;
+    :Inserer predictions_log\n+ explainer_json;
 
-    |Humain|
-    :Analyser mesures, predictions et alertes;
+    |Systemes / Interfaces|
+    if (Etat courant\nURGENT ou CRITICAL ?) then (oui)
+      :Preparer notification\navec cause + XAI;
+      :Envoyer SMS ou Email;
+      |Humain|
+      :Utilisateur final\nrecoit l'alerte;
+    else (non)
+      |Humain|
+      :Operateur consulte\nsurveillance sans notification;
+    endif
+  else (non)
+    |Stockage|
+    :Historiser diagnostic\nhistorique insuffisant;
+    |Systemes / Interfaces|
+    :Attendre plus de donnees;
+  endif
+
+  |Systemes / Interfaces|
+  if (7 jours ecoules ?) then (oui)
+    |Stockage|
+    :Fournir historique\nentrainement;
+    |Systemes / Interfaces|
+    :Reentrainer modeles;
+    :Recharger artefacts IA;
+  else (non)
+    :Conserver modeles actifs;
+  endif
+
+  |Stockage|
+  :Exposer donnees\nAPI / Grafana;
+
+  |Humain|
+  :Analyser mesures,\npredictions et SHAP;
 endwhile (non)
 
 |Humain|
 :Arreter le monitoring;
 stop
+
 @enduml
