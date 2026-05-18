@@ -70,48 +70,48 @@ ML_FEATURES = [
 
 FEATURE_LABELS = {
     'cpu_load': 'Charge CPU',
-    'mem_used_pct': 'Memoire utilisee',
-    'ping_latency': 'Latence ping',
-    'packet_loss': 'Perte paquets',
-    'wan_status': 'Etat WAN',
-    'reboot_event': 'Evenement reboot',
-    'recovery_phase': 'Phase recovery',
-    'cwmp_rss_mb': 'Memoire CWMP',
-    'dhcp_rss_mb': 'Memoire DHCP',
-    'nemo_rss_mb': 'Memoire NEMO',
-    'cpu_slope_5min': 'Pente CPU 5 min',
-    'cpu_slope_30min': 'Pente CPU 30 min',
-    'ram_slope_5min': 'Pente RAM 5 min',
-    'ram_slope_30min': 'Pente RAM 30 min',
+    'mem_used_pct': 'Mémoire utilisée',
+    'ping_latency': 'Latence réseau',
+    'packet_loss': 'Perte de paquets',
+    'wan_status': 'État connexion WAN',
+    'reboot_event': 'Redémarrage récent',
+    'recovery_phase': 'Phase de récupération',
+    'cwmp_rss_mb': 'Mémoire processus CWMP',
+    'dhcp_rss_mb': 'Mémoire processus DHCP',
+    'nemo_rss_mb': 'Mémoire processus NEMO',
+    'cpu_slope_5min': 'Tendance CPU (5 min)',
+    'cpu_slope_30min': 'Tendance CPU (30 min)',
+    'ram_slope_5min': 'Tendance mémoire (5 min)',
+    'ram_slope_30min': 'Tendance mémoire (30 min)',
     'cpu_mean_5min': 'CPU moyen 5 min',
     'cpu_mean_30min': 'CPU moyen 30 min',
-    'cpu_std_30min': 'Variation CPU 30 min',
-    'cpu_max_30min': 'CPU max 30 min',
-    'mem_mean_5min': 'Memoire moyenne 5 min',
-    'mem_mean_30min': 'Memoire moyenne 30 min',
-    'mem_std_30min': 'Variation memoire 30 min',
-    'mem_max_30min': 'Memoire max 30 min',
+    'cpu_std_30min': 'Instabilité CPU 30 min',
+    'cpu_max_30min': 'Pic CPU 30 min',
+    'mem_mean_5min': 'Mémoire moyenne 5 min',
+    'mem_mean_30min': 'Mémoire moyenne 30 min',
+    'mem_std_30min': 'Instabilité mémoire 30 min',
+    'mem_max_30min': 'Pic mémoire 30 min',
     'ping_mean_5min': 'Latence moyenne 5 min',
     'ping_mean_30min': 'Latence moyenne 30 min',
     'ping_max_5min': 'Latence max 5 min',
-    'loss_mean_5min': 'Perte moyenne 5 min',
-    'wan_instability_5min': 'Instabilite WAN 5 min',
-    'cpu_lag1m': 'CPU t-1 min',
-    'cpu_lag3m': 'CPU t-3 min',
-    'cpu_lag5m': 'CPU t-5 min',
-    'cpu_lag10m': 'CPU t-10 min',
-    'cpu_lag15m': 'CPU t-15 min',
-    'mem_lag1m': 'Memoire t-1 min',
-    'mem_lag3m': 'Memoire t-3 min',
-    'mem_lag5m': 'Memoire t-5 min',
-    'mem_lag10m': 'Memoire t-10 min',
-    'mem_lag15m': 'Memoire t-15 min',
-    'sin_hour': 'Cycle horaire sin',
-    'cos_hour': 'Cycle horaire cos',
-    'cpu_x_mem': 'Interaction CPU x memoire',
-    'saturation_idx': 'Indice saturation',
-    'mem_headroom': 'Marge memoire',
-    'health_score': 'Health score',
+    'loss_mean_5min': 'Perte de paquets moy. 5 min',
+    'wan_instability_5min': 'Instabilité WAN 5 min',
+    'cpu_lag1m': 'CPU il y a 1 min',
+    'cpu_lag3m': 'CPU il y a 3 min',
+    'cpu_lag5m': 'CPU il y a 5 min',
+    'cpu_lag10m': 'CPU il y a 10 min',
+    'cpu_lag15m': 'CPU il y a 15 min',
+    'mem_lag1m': 'Mémoire il y a 1 min',
+    'mem_lag3m': 'Mémoire il y a 3 min',
+    'mem_lag5m': 'Mémoire il y a 5 min',
+    'mem_lag10m': 'Mémoire il y a 10 min',
+    'mem_lag15m': 'Mémoire il y a 15 min',
+    'sin_hour': 'Heure de la journée',
+    'cos_hour': 'Heure de la journée',
+    'cpu_x_mem': 'Pression CPU + Mémoire combinée',
+    'saturation_idx': 'Taux de saturation système',
+    'mem_headroom': 'Marge mémoire disponible',
+    'health_score': 'Score de santé global',
 }
 
 DL_FEATURES = [
@@ -442,6 +442,161 @@ def build_dl_features(df_1min):
     return g30
 
 
+def _feature_value_context(feature, value):
+    """Return a short plain-language description of a feature's current value."""
+    if value is None:
+        return None
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if feature in ('cos_hour', 'sin_hour'):
+        # Decode approximate hour from the cyclical encoding
+        try:
+            import math
+            if feature == 'cos_hour':
+                h = round(math.acos(max(-1.0, min(1.0, v))) * 24 / (2 * math.pi))
+                return f"Vers {h}h ou {24 - h}h — plage associée à plus d'incidents dans l'historique"
+            else:
+                h = round(math.asin(max(-1.0, min(1.0, v))) * 24 / (2 * math.pi))
+                h = h % 24
+                return f"L'heure actuelle ({h}h) est une plage à risque selon l'historique"
+        except Exception:
+            return "L'heure actuelle correspond à une plage à risque selon l'historique"
+    if feature == 'cpu_load':
+        if v >= 90: return f"CPU critique ({v:.0f}%)"
+        if v >= 70: return f"CPU élevé ({v:.0f}%)"
+        if v >= 40: return f"CPU modéré ({v:.0f}%)"
+        return f"CPU faible ({v:.0f}%)"
+    if feature == 'mem_used_pct':
+        if v >= 95: return f"Mémoire saturée ({v:.0f}%)"
+        if v >= 85: return f"Mémoire sous pression ({v:.0f}%)"
+        if v >= 70: return f"Mémoire modérée ({v:.0f}%)"
+        return f"Mémoire normale ({v:.0f}%)"
+    if feature == 'cpu_mean_30min':
+        if v >= 70: return "Moyenne CPU élevée sur 30 min"
+        if v >= 40: return "Moyenne CPU modérée sur 30 min"
+        return "Moyenne CPU basse sur 30 min"
+    if feature == 'cpu_mean_5min':
+        if v >= 70: return "Moyenne CPU élevée sur 5 min"
+        return "Moyenne CPU normale sur 5 min"
+    if feature == 'cpu_max_30min':
+        if v >= 85: return "Pic CPU dangereux sur 30 min"
+        if v >= 60: return "Pic CPU modéré sur 30 min"
+        return "Pic CPU normal sur 30 min"
+    if feature == 'cpu_std_30min':
+        if v >= 10: return "CPU très instable sur 30 min"
+        if v >= 5: return "CPU fluctuant sur 30 min"
+        return "CPU stable sur 30 min"
+    if feature in ('mem_mean_5min', 'mem_mean_30min'):
+        suffix = "5 min" if '5min' in feature else "30 min"
+        if v >= 85: return f"Mémoire élevée sur {suffix}"
+        if v >= 70: return f"Mémoire modérée sur {suffix}"
+        return f"Mémoire normale sur {suffix}"
+    if feature == 'mem_max_30min':
+        if v >= 90: return "Pic mémoire critique sur 30 min"
+        if v >= 75: return "Pic mémoire élevé sur 30 min"
+        return "Pic mémoire normal sur 30 min"
+    if feature == 'mem_headroom':
+        if v <= 10: return "Mémoire presque pleine"
+        if v <= 25: return "Peu de mémoire disponible"
+        return "Mémoire disponible suffisante"
+    if feature == 'ping_latency':
+        if v >= 200: return "Latence réseau très élevée"
+        if v >= 100: return "Latence réseau élevée"
+        if v >= 50: return "Latence réseau acceptable"
+        return "Latence réseau bonne"
+    if feature == 'ping_max_5min':
+        if v >= 300: return "Pics de latence extrêmes"
+        if v >= 150: return "Pics de latence importants"
+        return "Latence stable"
+    if feature in ('ping_mean_5min', 'ping_mean_30min'):
+        suffix = "5 min" if '5min' in feature else "30 min"
+        if v >= 150: return f"Latence moyenne élevée sur {suffix}"
+        return f"Latence moyenne correcte sur {suffix}"
+    if feature == 'packet_loss':
+        if v >= 10: return "Perte de paquets significative"
+        if v >= 3: return "Légère perte de paquets"
+        return "Réseau sans perte"
+    if feature == 'wan_instability_5min':
+        if v > 0.3: return "WAN instable"
+        return "WAN stable"
+    if 'cpu_slope' in feature:
+        d = "5 min" if '5min' in feature else "30 min"
+        if v > 2: return f"CPU en forte hausse sur {d}"
+        if v > 0.5: return f"CPU en légère hausse sur {d}"
+        if v < -1: return f"CPU en baisse sur {d}"
+        return f"CPU stable sur {d}"
+    if 'ram_slope' in feature:
+        d = "5 min" if '5min' in feature else "30 min"
+        if v > 2: return f"Mémoire en forte hausse sur {d}"
+        if v > 0.5: return f"Mémoire en légère hausse sur {d}"
+        if v < -1: return f"Mémoire en baisse sur {d}"
+        return f"Mémoire stable sur {d}"
+    if feature == 'cpu_x_mem':
+        return "Pression simultanée CPU et mémoire" if v > 50 else None
+    if feature == 'saturation_idx':
+        if v > 0.7: return "Système proche de la saturation"
+        if v > 0.4: return "Saturation modérée"
+        return "Charge système normale"
+    if feature == 'health_score':
+        if v > 0.7: return "État système sain"
+        if v > 0.4: return "État système modéré"
+        return "État système dégradé"
+    return None
+
+
+def _impact_level(share):
+    """Convert relative SHAP share to human-readable level."""
+    if share >= 0.20:
+        return 'fort'
+    if share >= 0.10:
+        return 'modéré'
+    return 'faible'
+
+
+_HORIZON_LABELS = {
+    '15min': '15 min', '30min': '30 min', '60min': '1 h', '360min': '6 h',
+    '3 jours': '3 jours', '3j': '3 jours', '3day': '3 jours', 'bilstm_3d': '3 jours',
+}
+
+
+def _shap_business_explanation(top_features, probability, horizon):
+    """Generate a plain-language diagnostic sentence from SHAP results."""
+    pct = round(probability * 100)
+    h_label = _HORIZON_LABELS.get(str(horizon), str(horizon))
+
+    if probability >= 0.75:
+        intro = f"Risque élevé ({pct}%) dans les {h_label} à venir."
+    elif probability >= 0.45:
+        intro = f"Risque modéré ({pct}%) dans les {h_label} à venir."
+    elif probability >= 0.25:
+        intro = f"Risque faible ({pct}%) dans les {h_label} à venir."
+    else:
+        intro = f"Système en bon état ({pct}% de risque sur {h_label})."
+
+    strong_up = [f for f in top_features if f['impact'] == 'increase' and f['impact_level'] == 'fort']
+    mod_up = [f for f in top_features if f['impact'] == 'increase' and f['impact_level'] == 'modéré']
+    strong_down = [f for f in top_features if f['impact'] == 'decrease' and f['impact_level'] == 'fort']
+
+    parts = [intro]
+
+    if strong_up:
+        ctx = strong_up[0].get('context') or strong_up[0]['label']
+        extra = f", {strong_up[1]['label']}" if len(strong_up) > 1 else ""
+        parts.append(f"{ctx}{extra} augmente le risque.")
+    elif mod_up:
+        ctx = mod_up[0].get('context') or mod_up[0]['label']
+        parts.append(f"{ctx} contribue légèrement au risque.")
+
+    if strong_down:
+        ctx = strong_down[0].get('context') or strong_down[0]['label']
+        parts.append(f"{ctx} stabilise la situation.")
+
+    return ' '.join(parts)
+
+
 def explain_catboost_prediction(model, x_row, features, horizon, probability, top_n=6):
     """Return local SHAP explanation for one CatBoost prediction."""
     pool = Pool(x_row[features], feature_names=features)
@@ -470,14 +625,17 @@ def explain_catboost_prediction(model, x_row, features, horizon, probability, to
         else:
             clean_value = float(value) if isinstance(value, (int, float, np.number)) else str(value)
 
+        share = round(abs(shap_value) / abs_total, 4)
         top_features.append({
             'feature': feature,
             'label': FEATURE_LABELS.get(feature, feature),
             'value': clean_value,
+            'context': _feature_value_context(feature, clean_value),
             'shap_value': round(shap_value, 6),
             'abs_shap': round(abs(shap_value), 6),
-            'share': round(abs(shap_value) / abs_total, 4),
+            'share': share,
             'impact': 'increase' if shap_value >= 0 else 'decrease',
+            'impact_level': _impact_level(share),
         })
 
     increasing = [item['label'] for item in top_features if item['impact'] == 'increase']
@@ -495,6 +653,7 @@ def explain_catboost_prediction(model, x_row, features, horizon, probability, to
         'probability': round(float(probability), 6),
         'base_value': round(float(base_value), 6),
         'summary': summary,
+        'business_explanation': _shap_business_explanation(top_features, float(probability), horizon),
         'top_features': top_features,
     }
 

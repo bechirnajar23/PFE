@@ -46,9 +46,10 @@ export function EmptyState({ text = "En attente de donnees" }) {
 
 export function SummaryCards({ latest, prediction, counts, loading }) {
   const status = latest?.local_status;
-  const isCritical = status === "CRITICAL" || status === "URGENT";
+  const isUrgent = status === "URGENT";
+  const isCritical = status === "CRITICAL";
   const isWarning = status === "WARNING";
-  const statusTone = isCritical ? "alert" : isWarning ? "warning" : "green";
+  const statusTone = isCritical ? "alert" : isUrgent ? "urgent" : isWarning ? "warning" : "green";
   return (
     <section className="summary-grid">
       <MetricCard

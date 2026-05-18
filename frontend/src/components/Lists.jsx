@@ -36,8 +36,8 @@ export function PredictionRows({ rows }) {
 
 export function RulesGrid() {
   const rules = [
-    ["URGENT", "Alerte envoyee si l'etat courant HGW est urgent."],
-    ["CRITICAL", "SMS / email si service critique arrete ou pression forte."],
+    ["URGENT", "Alerte email envoyee si l'etat courant HGW est urgent."],
+    ["CRITICAL", "Email envoye si service critique arrete ou pression forte."],
     ["SHAP", "Explication locale des modeles CatBoost par contribution de features."],
   ];
   return (
@@ -60,6 +60,8 @@ function featureValue(value) {
   return value;
 }
 
+const IMPACT_LEVEL_LABEL = { fort: "Fort", "modéré": "Modéré", faible: "Faible" };
+
 export function XaiReasons({ items }) {
   if (!items.length) {
     return <EmptyState text="SHAP en attente: lancez un cycle de prediction" />;
@@ -70,33 +72,42 @@ export function XaiReasons({ items }) {
       {items.map((item) => {
         const shap = item.shap || item.explainer_json?.shap || {};
         const topFeatures = shap.top_features || [];
+        const explanation = item.shap_explanation || shap.business_explanation;
+
         return (
           <article key={`${item.timestamp}-${item.horizon}`} className="xai-card">
             <header>
               <div>
                 <strong>{item.horizon}</strong>
-                <span>{item.xai_summary || shap.summary || "Explication SHAP locale"}</span>
               </div>
-              <em>{prob(item.probability)}</em>
+              <em className={`risk-badge ${Number(item.probability) >= 0.7 ? "high" : Number(item.probability) >= 0.4 ? "medium" : "low"}`}>
+                {prob(item.probability)}
+              </em>
             </header>
+
+            {explanation && <p className="xai-business">{explanation}</p>}
 
             <div className="xai-bars">
               {topFeatures.slice(0, 5).map((feature) => {
                 const share = Math.max(0.03, Math.min(1, Number(feature.share || 0)));
-                const increasesRisk = feature.impact !== "decrease";
+                const aggravates = feature.impact !== "decrease";
+                const level = feature.impact_level || "faible";
                 return (
                   <div className="xai-row" key={`${item.horizon}-${feature.feature}`}>
-                    <div>
+                    <div className="xai-feature-info">
                       <strong>{feature.label || feature.feature}</strong>
-                      <span>valeur {featureValue(feature.value)}</span>
+                      <span>{feature.context || (feature.value != null ? `Valeur: ${featureValue(feature.value)}` : null)}</span>
                     </div>
                     <div className="xai-bar-track">
                       <span
-                        className={increasesRisk ? "increase" : "decrease"}
+                        className={aggravates ? "increase" : "decrease"}
                         style={{ width: `${Math.round(share * 100)}%` }}
                       />
                     </div>
-                    <em>{increasesRisk ? "+" : "-"}{Math.abs(Number(feature.shap_value || 0)).toFixed(3)}</em>
+                    <div className={`xai-badge ${aggravates ? "up" : "down"}`}>
+                      <span>{aggravates ? "↑ Aggrave" : "↓ Protège"}</span>
+                      <em>{IMPACT_LEVEL_LABEL[level] || level}</em>
+                    </div>
                   </div>
                 );
               })}

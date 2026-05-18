@@ -1,20 +1,51 @@
-﻿# Report & assets (local only)
-report/
-assets/
+﻿# Secrets
+.env
 
-# Python
+# Internal/dev-only docs (not for public repo)
+CLAUDE.md
+DIAGRAMS/
+docs/
+PFE_FINAL_README.md
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
-.env
+*.pyd
 
-# Data & models (large files)
-data/*.csv
-data/*.json
+# Large training datasets (not needed at runtime)
+data/data_train/
+data/archive/
+data/predictions/
+data/raw/
+data/real/
 
-# Jupyter
+# Runtime state files (auto-generated)
+data/alert_state.json
+data/retrain_state.json
+
+# CatBoost training logs
+catboost_info/
+
+# Root-level model copies (production models live in predictor/)
+models/
+
+# Logs (auto-generated)
+logs/
+
+# Stray CSV exports
+predictor/monitor_snapshots.csv
+*.csv
+
+# Jupyter checkpoints
 .ipynb_checkpoints/
 
 # OS
 .DS_Store
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+
+# Report & assets (local only)
+report/
+assets/

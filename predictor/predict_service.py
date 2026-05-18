@@ -281,12 +281,15 @@ def save_predictions(results: dict, gateway_id: str, latest_row=None) -> None:
 
 
 def should_notify(results: dict, gateway_id: str, latest_row) -> bool:
-    current_status = current_status_from_row(latest_row)
-    if current_status not in NOTIFY_STATUSES:
-        return False
-
     decision_level, _message, source = decision_from_results(results)
-    if decision_level == "OK":
+    current_status = current_status_from_row(latest_row)
+
+    # Trigger on real URGENT/CRITICAL state OR on ML-predicted incident
+    triggers = (
+        current_status in NOTIFY_STATUSES
+        or decision_level in {"CRITICAL", "PREDICTED_INCIDENT"}
+    )
+    if not triggers or decision_level == "OK":
         return False
 
     state = load_state(ALERT_STATE_FILE)
@@ -326,45 +329,163 @@ def send_email_alert(subject: str, body: str) -> None:
         print(f"[WARN] Email alert failed: {exc}")
 
 
+def _horizon_label(horizon: str | None) -> str:
+    """Convert technical horizon key to readable French label."""
+    mapping = {
+        "15min": "15 minutes",
+        "30min": "30 minutes",
+        "60min": "1 heure",
+        "360min": "6 heures",
+        "3 jours": "3 jours",
+        "3j": "3 jours",
+        "3day": "3 jours",
+        "bilstm_3d": "3 jours",
+    }
+    return mapping.get(str(horizon or ""), str(horizon or "inconnu"))
+
+
+def _status_icon(status: str) -> str:
+    icons = {"CRITICAL": "🔴", "URGENT": "🔴", "WARNING": "🟠", "NORMAL": "🟢"}
+    return icons.get(status.upper(), "⚪")
+
+
+def _build_email_body(
+    gateway_id: str,
+    current_status: str,
+    decision_level: str,
+    decision_message: str,
+    explanation: str,
+    source: str | None,
+    results: dict,
+    shap_payload: dict | None,
+    timestamp_str: str,
+) -> tuple[str, str]:
+    """Return (subject, body) for the alert email."""
+
+    icon = _status_icon(current_status)
+    horizon_lbl = _horizon_label(source)
+    probability = None
+    if source and source in results.get("predictions", {}):
+        probability = results["predictions"][source].get("probability")
+
+    # --- Subject ---
+    if decision_level == "PREDICTED_INCIDENT":
+        subject = f"[HGW ALERTE] {icon} Incident prédit dans {horizon_lbl} — {gateway_id}"
+    elif decision_level == "CRITICAL":
+        subject = f"[HGW CRITIQUE] {icon} État critique détecté — {gateway_id}"
+    else:
+        subject = f"[HGW ALERTE] {icon} {current_status} — {gateway_id}"
+
+    # --- Timestamp ---
+    try:
+        ts = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        ts_local = ts.strftime("%d/%m/%Y à %Hh%M UTC")
+    except Exception:
+        ts_local = timestamp_str
+
+    # --- Probability line ---
+    prob_line = ""
+    if probability is not None:
+        prob_line = f"  Probabilité d'incident : {round(probability * 100)}%\n"
+
+    # --- Risk source ---
+    if decision_level == "PREDICTED_INCIDENT":
+        source_line = f"  Modèle IA : risque détecté à l'horizon {horizon_lbl}\n"
+    elif decision_level == "CRITICAL":
+        source_line = f"  Règle métier déclenchée : {explanation}\n"
+    else:
+        source_line = f"  Cause : {explanation}\n"
+
+    # --- "Pourquoi ce risque ?" section ---
+    why_section = ""
+    if shap_payload:
+        top = shap_payload.get("top_features", [])[:4]
+        aggravants = [f for f in top if f.get("impact") == "increase"]
+        protecteurs = [f for f in top if f.get("impact") == "decrease"]
+
+        if aggravants or protecteurs:
+            why_section = "\nPourquoi cette alerte ?\n"
+            for f in aggravants:
+                ctx = f.get("context") or f.get("label", "?")
+                level = f.get("impact_level", "")
+                severity = " (impact fort)" if level == "fort" else " (impact modéré)" if level == "modéré" else ""
+                why_section += f"  ⚠  {ctx}{severity}\n"
+            for f in protecteurs:
+                ctx = f.get("context") or f.get("label", "?")
+                why_section += f"  ✓  {ctx} — facteur rassurant\n"
+            why_section += "\n"
+
+        biz_expl = shap_payload.get("business_explanation", "")
+        if biz_expl:
+            why_section += f"En résumé : {biz_expl}\n"
+
+    # --- Action recommendations ---
+    actions = "\nQue faire ?\n"
+    ba = results.get("business_alert") or {}
+    msg = ba.get("message", "")
+    has_cpu = shap_payload and any(
+        "cpu" in f.get("feature", "") for f in shap_payload.get("top_features", [])[:3]
+        if f.get("impact") == "increase"
+    )
+    has_mem = shap_payload and any(
+        "mem" in f.get("feature", "") for f in shap_payload.get("top_features", [])[:3]
+        if f.get("impact") == "increase"
+    )
+    has_latency = "latence" in msg.lower() or "WAN" in msg or (shap_payload and any(
+        "ping" in f.get("feature", "") or "wan" in f.get("feature", "")
+        for f in shap_payload.get("top_features", [])[:3] if f.get("impact") == "increase"
+    ))
+    has_dhcp = "DHCP" in msg
+
+    if has_cpu:
+        actions += "  1. Connectez-vous à l'interface admin de votre box et vérifiez la charge CPU.\n"
+    if has_mem:
+        actions += "  2. Vérifiez l'utilisation mémoire — un redémarrage peut résoudre le problème.\n"
+    if has_latency:
+        actions += "  3. Vérifiez votre connexion internet et votre câble réseau.\n"
+    if has_dhcp:
+        actions += "  4. Le service DHCP de la box semble avoir un problème — vérifiez son état.\n"
+    if not (has_cpu or has_mem or has_latency or has_dhcp):
+        actions += "  1. Surveillez l'évolution de l'état de votre box.\n"
+    actions += "  → Si la situation ne s'améliore pas dans 10 minutes, redémarrez votre box.\n"
+
+    body = (
+        f"{'='*50}\n"
+        f"  HGW PREDICTIVE SYSTEM — ALERTE\n"
+        f"{'='*50}\n\n"
+        f"Box           : {gateway_id}\n"
+        f"État actuel   : {icon} {current_status}\n"
+        f"Détecté le    : {ts_local}\n\n"
+        f"Situation :\n"
+        f"{source_line}"
+        f"{prob_line}"
+        f"{why_section}"
+        f"{actions}\n"
+        f"{'─'*50}\n"
+        f"HGW Predictive System — message automatique.\n"
+    )
+    return subject, body
+
+
 def notify_if_needed(results: dict, gateway_id: str, latest_row) -> None:
     if not should_notify(results, gateway_id, latest_row):
         return
 
     decision_level, decision_message, source = decision_from_results(results)
     current_status = current_status_from_row(latest_row)
-    explanation, explainer_json = alert_explanation_from_row(latest_row, results)
-    payload = {
-        "gateway_id": gateway_id,
-        "level": current_status,
-        "message": decision_message,
-        "explanation": explanation,
-        "horizon": source,
-        "timestamp": results.get("timestamp"),
-    }
-    if explainer_json:
-        payload["explainer"] = explainer_json
-
-    if source and source in results.get("predictions", {}):
-        payload["probability"] = results["predictions"][source].get("probability")
-
+    explanation, _ = alert_explanation_from_row(latest_row, results)
     shap_summary, shap_payload = shap_hint_from_results(results, source)
-    if shap_summary:
-        payload["xai"] = shap_summary
-    if shap_payload:
-        payload["shap"] = {
-            "horizon": shap_payload.get("horizon"),
-            "top_features": shap_payload.get("top_features", [])[:3],
-        }
 
-    subject = f"[HGW] {current_status} - {gateway_id}"
-    body = (
-        f"Gateway: {gateway_id}\n"
-        f"Etat: {current_status}\n"
-        f"Message: {decision_message}\n"
-        f"Explication: {explanation}\n"
-        f"XAI: {shap_summary or 'N/A'}\n"
-        f"Source: {source or 'business'}\n"
-        f"Timestamp: {results.get('timestamp')}\n"
+    subject, body = _build_email_body(
+        gateway_id=gateway_id,
+        current_status=current_status,
+        decision_level=decision_level,
+        decision_message=decision_message,
+        explanation=explanation,
+        source=source,
+        results=results,
+        shap_payload=shap_payload,
+        timestamp_str=str(results.get("timestamp", "")),
     )
     send_email_alert(subject, body)
 

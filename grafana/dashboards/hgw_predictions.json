@@ -106,7 +106,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/.+/",
           "values": false
         },
         "textMode": "value"
@@ -294,7 +294,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/.+/",
           "values": false
         },
         "textMode": "value"
@@ -612,4 +612,3 @@
   "version": 1,
   "weekStart": ""
 }
-

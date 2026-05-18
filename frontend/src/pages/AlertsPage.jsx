@@ -17,7 +17,7 @@ export default function AlertsPage({ latest, prediction, counts, events, xai, lo
         <Panel title="Repartition des etats" action="Derniere heure">
           <StateDonut stable={stable} critical={critical} />
         </Panel>
-        <Panel title="Regles d'alerte" action="SMS / Email">
+        <Panel title="Regles d'alerte" action="Email">
           <RulesGrid />
         </Panel>
         <Panel title="Pourquoi le risque monte" action="SHAP" className="full">

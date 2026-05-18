@@ -261,6 +261,7 @@ def latest_xai(limit: int = 8):
         item["business_explanation"] = payload.get("business_explanation")
         item["business"] = payload.get("business")
         item["shap"] = shap_payload
+        item["shap_explanation"] = shap_payload.get("business_explanation")
         item["xai_summary"] = payload.get("summary") or shap_payload.get("summary")
         visible_items.append(item)
 
